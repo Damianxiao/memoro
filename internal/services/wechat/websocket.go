@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
+	"memoro/internal/errors"
+	"memoro/internal/logger"
 )
 
 // MessageHandler 消息处理函数类型
@@ -27,20 +28,17 @@ type WeChatWebSocketClient struct {
 	messageHandler MessageHandler
 	errorHandler   ErrorHandler
 	stopChan       chan struct{}
-	logger         *logrus.Logger
+	logger         *logger.Logger
 }
 
 // NewWeChatWebSocketClient 创建新的WebSocket客户端
 func NewWeChatWebSocketClient(serverURL, adminKey string) *WeChatWebSocketClient {
-	logger := logrus.New()
-	logger.SetLevel(logrus.InfoLevel)
-
 	return &WeChatWebSocketClient{
 		serverURL: serverURL,
 		adminKey:  adminKey,
 		connected: false,
 		stopChan:  make(chan struct{}),
-		logger:    logger,
+		logger:    logger.NewLogger("wechat-websocket"),
 	}
 }
 
@@ -50,28 +48,45 @@ func (c *WeChatWebSocketClient) Connect(ctx context.Context) error {
 	defer c.mu.Unlock()
 
 	if c.connected {
-		return fmt.Errorf("client is already connected")
+		return errors.NewMemoroError(errors.ErrorTypeWebSocket, errors.ErrCodeWebSocketConnect, "Client is already connected")
 	}
 
 	// 构造WebSocket URL
 	wsURL, err := c.buildWebSocketURL()
 	if err != nil {
-		return fmt.Errorf("failed to build WebSocket URL: %w", err)
+		memoErr := errors.ErrWebSocketConnection("Failed to build WebSocket URL", err)
+		c.logger.LogMemoroError(memoErr, "WebSocket URL construction failed")
+		return memoErr
 	}
 
 	// 设置拨号器
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 10 * time.Second
 
+	c.logger.Info("Attempting to connect to WebSocket", logger.Fields{
+		"url": wsURL,
+		"timeout": "10s",
+	})
+
 	// 连接WebSocket
 	conn, _, err := dialer.DialContext(ctx, wsURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to connect to WebSocket: %w", err)
+		memoErr := errors.ErrWebSocketConnection("Failed to establish WebSocket connection", err).
+			WithContext(map[string]interface{}{
+				"url": wsURL,
+				"timeout": "10s",
+			})
+		c.logger.LogMemoroError(memoErr, "WebSocket connection failed")
+		return memoErr
 	}
 
 	c.conn = conn
 	c.connected = true
-	c.logger.Infof("Connected to WeChatPad WebSocket: %s", wsURL)
+	
+	c.logger.Info("Successfully connected to WebSocket", logger.Fields{
+		"url": wsURL,
+		"connection_id": fmt.Sprintf("%p", conn),
+	})
 
 	return nil
 }
@@ -82,8 +97,13 @@ func (c *WeChatWebSocketClient) Disconnect() error {
 	defer c.mu.Unlock()
 
 	if !c.connected || c.conn == nil {
+		c.logger.Debug("Disconnect called on already disconnected client")
 		return nil
 	}
+
+	c.logger.Info("Disconnecting WebSocket client", logger.Fields{
+		"connection_id": fmt.Sprintf("%p", c.conn),
+	})
 
 	// 发送停止信号
 	close(c.stopChan)
@@ -94,8 +114,15 @@ func (c *WeChatWebSocketClient) Disconnect() error {
 	c.conn = nil
 	c.connected = false
 
-	c.logger.Info("Disconnected from WeChatPad WebSocket")
-	return err
+	if err != nil {
+		memoErr := errors.NewMemoroError(errors.ErrorTypeWebSocket, errors.ErrCodeWebSocketConnect, "Failed to close WebSocket connection").
+			WithCause(err)
+		c.logger.LogMemoroError(memoErr, "Error during WebSocket disconnection")
+		return memoErr
+	}
+
+	c.logger.Info("WebSocket client disconnected successfully")
+	return nil
 }
 
 // IsConnected 检查连接状态
@@ -110,6 +137,7 @@ func (c *WeChatWebSocketClient) SetMessageHandler(handler MessageHandler) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.messageHandler = handler
+	c.logger.Debug("Message handler set")
 }
 
 // SetErrorHandler 设置错误处理器
@@ -117,31 +145,50 @@ func (c *WeChatWebSocketClient) SetErrorHandler(handler ErrorHandler) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.errorHandler = handler
+	c.logger.Debug("Error handler set")
 }
 
 // StartListening 开始监听消息
 func (c *WeChatWebSocketClient) StartListening() {
 	if !c.IsConnected() {
-		c.handleError(fmt.Errorf("client is not connected"))
+		err := errors.NewMemoroError(errors.ErrorTypeWebSocket, errors.ErrCodeWebSocketConnect, "Cannot start listening: client is not connected")
+		c.logger.LogMemoroError(err, "Failed to start message listening")
+		c.handleError(err)
 		return
 	}
+
+	c.logger.Info("Starting WebSocket message listening")
 
 	for {
 		select {
 		case <-c.stopChan:
-			c.logger.Info("Stopping message listening")
+			c.logger.Info("Stopping message listening due to stop signal")
 			return
 		default:
 			// 读取消息
 			messageType, message, err := c.conn.ReadMessage()
 			if err != nil {
-				c.handleError(fmt.Errorf("failed to read message: %w", err))
+				memoErr := errors.NewMemoroError(errors.ErrorTypeWebSocket, errors.ErrCodeWebSocketMessage, "Failed to read WebSocket message").
+					WithCause(err).
+					WithContext(map[string]interface{}{
+						"connection_id": fmt.Sprintf("%p", c.conn),
+					})
+				c.logger.LogMemoroError(memoErr, "WebSocket message read error")
+				c.handleError(memoErr)
 				return
 			}
 
 			// 只处理文本消息
 			if messageType == websocket.TextMessage {
+				c.logger.Debug("Received WebSocket message", logger.Fields{
+					"message_type": "text",
+					"message_size": len(message),
+				})
 				c.handleMessage(message)
+			} else {
+				c.logger.Debug("Ignored non-text WebSocket message", logger.Fields{
+					"message_type": messageType,
+				})
 			}
 		}
 	}
@@ -153,10 +200,25 @@ func (c *WeChatWebSocketClient) SendMessage(message []byte) error {
 	defer c.mu.RUnlock()
 
 	if !c.connected || c.conn == nil {
-		return fmt.Errorf("client is not connected")
+		return errors.NewMemoroError(errors.ErrorTypeWebSocket, errors.ErrCodeWebSocketMessage, "Cannot send message: client is not connected")
 	}
 
-	return c.conn.WriteMessage(websocket.TextMessage, message)
+	c.logger.Debug("Sending WebSocket message", logger.Fields{
+		"message_size": len(message),
+	})
+
+	err := c.conn.WriteMessage(websocket.TextMessage, message)
+	if err != nil {
+		memoErr := errors.NewMemoroError(errors.ErrorTypeWebSocket, errors.ErrCodeWebSocketMessage, "Failed to send WebSocket message").
+			WithCause(err).
+			WithContext(map[string]interface{}{
+				"message_size": len(message),
+			})
+		c.logger.LogMemoroError(memoErr, "WebSocket message send error")
+		return memoErr
+	}
+
+	return nil
 }
 
 // buildWebSocketURL 构造WebSocket URL
@@ -191,8 +253,13 @@ func (c *WeChatWebSocketClient) handleMessage(message []byte) {
 
 	if handler != nil {
 		if err := handler(message); err != nil {
-			c.logger.Errorf("Message handler error: %v", err)
+			c.logger.Error("Message handler error", logger.Fields{
+				"error": err.Error(),
+				"message_size": len(message),
+			})
 		}
+	} else {
+		c.logger.Debug("No message handler set, ignoring message")
 	}
 }
 
@@ -202,7 +269,13 @@ func (c *WeChatWebSocketClient) handleError(err error) {
 	handler := c.errorHandler
 	c.mu.RUnlock()
 
-	c.logger.Errorf("WebSocket error: %v", err)
+	if memoErr, ok := err.(*errors.MemoroError); ok {
+		c.logger.LogMemoroError(memoErr, "WebSocket error occurred")
+	} else {
+		c.logger.Error("WebSocket error occurred", logger.Fields{
+			"error": err.Error(),
+		})
+	}
 
 	if handler != nil {
 		handler(err)
