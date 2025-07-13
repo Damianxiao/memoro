@@ -134,8 +134,8 @@ func TestTagResult(t *testing.T) {
 		Keywords:   []string{"AI", "ML", "algorithm", "data"},
 		Confidence: map[string]float64{
 			"machine learning": 0.9,
-			"AI":              0.95,
-			"technology":      0.8,
+			"AI":               0.95,
+			"technology":       0.8,
 		},
 	}
 
@@ -252,18 +252,19 @@ func createMockLLMConfig() config.LLMConfig {
 
 func createMockProcessingConfig() config.ProcessingConfig {
 	return config.ProcessingConfig{
-		MaxWorkers:       10,
-		QueueSize:        1000,
-		Timeout:          120 * time.Second,
-		ContentSizeLimit: "100KB",
+		MaxWorkers:     10,
+		QueueSize:      1000,
+		Timeout:        120 * time.Second,
+		MaxContentSize: 102400,
 		SummaryLevels: config.SummaryLevelsConfig{
 			OneLineMaxLength:   200,
 			ParagraphMaxLength: 1000,
 			DetailedMaxLength:  5000,
 		},
 		TagLimits: config.TagLimitsConfig{
-			MaxTags:      50,
-			MaxTagLength: 100,
+			MaxTags:           50,
+			MaxTagLength:      100,
+			DefaultConfidence: 0.7,
 		},
 	}
 }

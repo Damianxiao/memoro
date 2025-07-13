@@ -21,27 +21,27 @@ type Tagger struct {
 
 // TagRequest 标签生成请求
 type TagRequest struct {
-	Content     string                  `json:"content"`
-	ContentType models.ContentType      `json:"content_type"`
-	Context     map[string]interface{}  `json:"context,omitempty"`     // 可选的上下文信息
+	Content      string                 `json:"content"`
+	ContentType  models.ContentType     `json:"content_type"`
+	Context      map[string]interface{} `json:"context,omitempty"`       // 可选的上下文信息
 	ExistingTags []string               `json:"existing_tags,omitempty"` // 已有标签，用于参考
-	MaxTags     int                     `json:"max_tags,omitempty"`    // 最大标签数量
+	MaxTags      int                    `json:"max_tags,omitempty"`      // 最大标签数量
 }
 
 // TagResult 标签生成结果
 type TagResult struct {
-	Tags       []string               `json:"tags"`        // 生成的标签列表
-	Categories []string               `json:"categories"`  // 内容分类
-	Keywords   []string               `json:"keywords"`    // 关键词
-	Confidence map[string]float64     `json:"confidence"`  // 各标签的置信度
+	Tags       []string           `json:"tags"`       // 生成的标签列表
+	Categories []string           `json:"categories"` // 内容分类
+	Keywords   []string           `json:"keywords"`   // 关键词
+	Confidence map[string]float64 `json:"confidence"` // 各标签的置信度
 }
 
 // TagResponse LLM标签响应结构（用于解析LLM返回的JSON）
 type TagResponse struct {
-	Tags       []string               `json:"tags"`
-	Categories []string               `json:"categories"`
-	Keywords   []string               `json:"keywords"`
-	Confidence map[string]float64     `json:"confidence"`
+	Tags       []string           `json:"tags"`
+	Categories []string           `json:"categories"`
+	Keywords   []string           `json:"keywords"`
+	Confidence map[string]float64 `json:"confidence"`
 }
 
 // NewTagger 创建新的标签生成器
@@ -62,8 +62,8 @@ func NewTagger(client *Client) (*Tagger, error) {
 	}
 
 	tagger.logger.Info("Tagger initialized", logger.Fields{
-		"max_tags":        cfg.Processing.TagLimits.MaxTags,
-		"max_tag_length":  cfg.Processing.TagLimits.MaxTagLength,
+		"max_tags":       cfg.Processing.TagLimits.MaxTags,
+		"max_tag_length": cfg.Processing.TagLimits.MaxTagLength,
 	})
 
 	return tagger, nil
@@ -75,8 +75,8 @@ func (t *Tagger) GenerateTags(ctx context.Context, request TagRequest) (*TagResu
 		return nil, errors.ErrValidationFailed("content", "cannot be empty")
 	}
 
-	if len(request.Content) > 100000 { // 100KB限制
-		return nil, errors.ErrValidationFailed("content", "content too large (max 100KB)")
+	if len(request.Content) > t.config.MaxContentSize {
+		return nil, errors.ErrValidationFailed("content", fmt.Sprintf("content too large (max %d bytes)", t.config.MaxContentSize))
 	}
 
 	// 设置默认最大标签数
@@ -88,11 +88,11 @@ func (t *Tagger) GenerateTags(ctx context.Context, request TagRequest) (*TagResu
 	}
 
 	t.logger.Debug("Generating tags", logger.Fields{
-		"content_type":     string(request.ContentType),
-		"content_length":   len(request.Content),
-		"max_tags":         request.MaxTags,
-		"existing_tags":    len(request.ExistingTags),
-		"has_context":      request.Context != nil,
+		"content_type":   string(request.ContentType),
+		"content_length": len(request.Content),
+		"max_tags":       request.MaxTags,
+		"existing_tags":  len(request.ExistingTags),
+		"has_context":    request.Context != nil,
 	})
 
 	// 构建系统提示和用户请求
@@ -102,20 +102,32 @@ func (t *Tagger) GenerateTags(ctx context.Context, request TagRequest) (*TagResu
 	// 调用LLM生成标签
 	response, err := t.client.SimpleCompletion(ctx, systemPrompt, userPrompt)
 	if err != nil {
-		t.logger.LogMemoroError(err.(*errors.MemoroError), "Failed to generate tags")
+		if memoErr, ok := err.(*errors.MemoroError); ok {
+			t.logger.LogMemoroError(memoErr, "Failed to generate tags")
+		} else {
+			t.logger.Error("Failed to generate tags", logger.Fields{"error": err.Error()})
+		}
 		return nil, err
 	}
 
 	// 解析LLM响应
 	result, err := t.parseTagResponse(response)
 	if err != nil {
-		t.logger.LogMemoroError(err.(*errors.MemoroError), "Failed to parse tag response")
+		if memoErr, ok := err.(*errors.MemoroError); ok {
+			t.logger.LogMemoroError(memoErr, "Failed to parse tag response")
+		} else {
+			t.logger.Error("Failed to parse tag response", logger.Fields{"error": err.Error()})
+		}
 		return nil, err
 	}
 
 	// 验证和清理结果
 	if err := t.validateAndCleanResult(result, request.MaxTags); err != nil {
-		t.logger.LogMemoroError(err.(*errors.MemoroError), "Tag validation failed")
+		if memoErr, ok := err.(*errors.MemoroError); ok {
+			t.logger.LogMemoroError(memoErr, "Tag validation failed")
+		} else {
+			t.logger.Error("Tag validation failed", logger.Fields{"error": err.Error()})
+		}
 		return nil, err
 	}
 
@@ -284,7 +296,7 @@ func (t *Tagger) parseTagResponse(response string) (*TagResult, error) {
 	if err := json.Unmarshal([]byte(response), &tagResponse); err != nil {
 		// 如果JSON解析失败，尝试从文本中提取标签
 		t.logger.Warn("Failed to parse JSON response, attempting text extraction", logger.Fields{
-			"error": err.Error(),
+			"error":    err.Error(),
 			"response": response,
 		})
 		return t.fallbackParseResponse(response)
@@ -357,7 +369,7 @@ func (t *Tagger) extractTagsFromLine(line string) []string {
 func (t *Tagger) parseSimpleTagResponse(response string) []string {
 	// 清理响应
 	response = strings.TrimSpace(response)
-	
+
 	// 按逗号分割
 	tags := strings.Split(response, ",")
 	var cleanTags []string
@@ -405,7 +417,7 @@ func (t *Tagger) validateAndCleanResult(result *TagResult, maxTags int) error {
 	// 为没有置信度的标签设置默认值
 	for _, tag := range result.Tags {
 		if _, exists := result.Confidence[tag]; !exists {
-			result.Confidence[tag] = 0.7 // 默认置信度
+			result.Confidence[tag] = t.config.TagLimits.DefaultConfidence // 从配置读取默认置信度
 		}
 	}
 
@@ -420,7 +432,7 @@ func (t *Tagger) cleanTags(tags []string) []string {
 	for _, tag := range tags {
 		tag = strings.TrimSpace(tag)
 		tag = strings.Trim(tag, "\"'")
-		
+
 		// 跳过空标签和过长标签
 		if tag == "" || len(tag) > t.config.TagLimits.MaxTagLength {
 			continue

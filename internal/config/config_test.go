@@ -69,7 +69,7 @@ processing:
   max_workers: 5
   queue_size: 100
   timeout: "60s"
-  content_size_limit: "50KB"
+  max_content_size: 51200
   summary_levels:
     one_line_max_length: 100
     paragraph_max_length: 500
@@ -77,6 +77,7 @@ processing:
   tag_limits:
     max_tags: 20
     max_tag_length: 50
+    default_confidence: 0.7
 
 cache:
   enabled: true
@@ -154,7 +155,7 @@ monitoring:
 	assert.Equal(t, 5, config.Processing.MaxWorkers)
 	assert.Equal(t, 100, config.Processing.QueueSize)
 	assert.Equal(t, 60*time.Second, config.Processing.Timeout)
-	assert.Equal(t, "50KB", config.Processing.ContentSizeLimit)
+	assert.Equal(t, 51200, config.Processing.MaxContentSize)
 
 	// 验证缓存配置
 	assert.True(t, config.Cache.Enabled)

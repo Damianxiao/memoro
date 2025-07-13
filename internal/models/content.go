@@ -40,9 +40,9 @@ func IsValidContentType(ct ContentType) bool {
 
 // Summary 摘要结构
 type Summary struct {
-	OneLine   string `json:"one_line" gorm:"column:summary_one_line"`     // 一句话摘要
-	Paragraph string `json:"paragraph" gorm:"column:summary_paragraph"`   // 段落摘要
-	Detailed  string `json:"detailed" gorm:"column:summary_detailed"`     // 详细摘要
+	OneLine   string `json:"one_line" gorm:"column:summary_one_line"`   // 一句话摘要
+	Paragraph string `json:"paragraph" gorm:"column:summary_paragraph"` // 段落摘要
+	Detailed  string `json:"detailed" gorm:"column:summary_detailed"`   // 详细摘要
 }
 
 // Validate 验证摘要数据
@@ -61,18 +61,18 @@ func (s *Summary) Validate() error {
 
 // ContentItem 内容项数据模型
 type ContentItem struct {
-	ID              string                 `json:"id" gorm:"primaryKey"`
-	Type            ContentType            `json:"type"`                                                    // text, link, file, image, audio, video
-	RawContent      string                 `json:"raw_content"`                                             // 原始内容
-	ProcessedData   string                 `json:"-" gorm:"column:processed_data"`                         // 处理后的数据JSON字符串
-	Summary         Summary                `json:"summary" gorm:"embedded"`                                 // 多层次摘要
-	Tags            string                 `json:"-" gorm:"column:tags"`                                    // 标签列表JSON字符串
-	ImportanceScore float64                `json:"importance_score"`                                        // 重要性评分
-	VectorID        string                 `json:"vector_id"`                                              // 向量数据库ID
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	UserID          string                 `json:"user_id"`                                                // 用户ID
-	
+	ID              string      `json:"id" gorm:"primaryKey"`
+	Type            ContentType `json:"type"`                           // text, link, file, image, audio, video
+	RawContent      string      `json:"raw_content"`                    // 原始内容
+	ProcessedData   string      `json:"-" gorm:"column:processed_data"` // 处理后的数据JSON字符串
+	Summary         Summary     `json:"summary" gorm:"embedded"`        // 多层次摘要
+	Tags            string      `json:"-" gorm:"column:tags"`           // 标签列表JSON字符串
+	ImportanceScore float64     `json:"importance_score"`               // 重要性评分
+	VectorID        string      `json:"vector_id"`                      // 向量数据库ID
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
+	UserID          string      `json:"user_id"` // 用户ID
+
 	// 内存中的字段，不存储到数据库
 	processedDataMap map[string]interface{} `json:"processed_data" gorm:"-"`
 	tagsList         []string               `json:"tags" gorm:"-"`
@@ -84,34 +84,34 @@ func NewContentItem(contentType ContentType, rawContent, userID string) *Content
 	// 验证输入
 	if err := validateContentItemInput(contentType, rawContent, userID); err != nil {
 		logger.Error("Failed to create ContentItem due to validation error", logger.Fields{
-			"error": err.Error(),
+			"error":        err.Error(),
 			"content_type": string(contentType),
-			"user_id": userID,
+			"user_id":      userID,
 		})
 		return nil
 	}
-	
+
 	now := time.Now()
 	item := &ContentItem{
-		ID:              uuid.New().String(),
-		Type:            contentType,
-		RawContent:      rawContent,
-		UserID:          userID,
-		ImportanceScore: 0.0,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		ID:               uuid.New().String(),
+		Type:             contentType,
+		RawContent:       rawContent,
+		UserID:           userID,
+		ImportanceScore:  0.0,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 		processedDataMap: make(map[string]interface{}),
-		tagsList:        make([]string, 0),
-		logger:          logger.NewLogger("content-model"),
+		tagsList:         make([]string, 0),
+		logger:           logger.NewLogger("content-model"),
 	}
-	
+
 	item.logger.Debug("Created new ContentItem", logger.Fields{
-		"id": item.ID,
-		"type": string(item.Type),
-		"user_id": item.UserID,
+		"id":             item.ID,
+		"type":           string(item.Type),
+		"user_id":        item.UserID,
 		"content_length": len(rawContent),
 	})
-	
+
 	return item
 }
 
@@ -120,19 +120,19 @@ func validateContentItemInput(contentType ContentType, rawContent, userID string
 	if !IsValidContentType(contentType) {
 		return errors.ErrValidationFailed("content_type", fmt.Sprintf("invalid content type: %s", contentType))
 	}
-	
+
 	if strings.TrimSpace(rawContent) == "" {
 		return errors.ErrValidationFailed("raw_content", "cannot be empty")
 	}
-	
+
 	if len(rawContent) > 100000 { // 100KB limit
 		return errors.ErrValidationFailed("raw_content", "content too large (max 100KB)")
 	}
-	
+
 	if strings.TrimSpace(userID) == "" {
 		return errors.ErrValidationFailed("user_id", "cannot be empty")
 	}
-	
+
 	return nil
 }
 
@@ -141,26 +141,26 @@ func (c *ContentItem) Validate() error {
 	if c.ID == "" {
 		return errors.ErrValidationFailed("id", "cannot be empty")
 	}
-	
+
 	if err := validateContentItemInput(c.Type, c.RawContent, c.UserID); err != nil {
 		return err
 	}
-	
+
 	if c.ImportanceScore < 0.0 || c.ImportanceScore > 1.0 {
 		return errors.ErrValidationFailed("importance_score", "must be between 0.0 and 1.0")
 	}
-	
+
 	// 验证摘要
 	if err := c.Summary.Validate(); err != nil {
 		return err
 	}
-	
+
 	// 验证标签
 	tags := c.GetTags()
 	if len(tags) > 50 {
 		return errors.ErrValidationFailed("tags", "cannot have more than 50 tags")
 	}
-	
+
 	for i, tag := range tags {
 		if strings.TrimSpace(tag) == "" {
 			return errors.ErrValidationFailed("tags", fmt.Sprintf("tag at index %d cannot be empty", i))
@@ -169,7 +169,7 @@ func (c *ContentItem) Validate() error {
 			return errors.ErrValidationFailed("tags", fmt.Sprintf("tag at index %d exceeds 100 characters", i))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -179,17 +179,17 @@ func (c *ContentItem) SetSummary(summary Summary) error {
 		c.logger.LogMemoroError(err.(*errors.MemoroError), "Failed to set summary due to validation error")
 		return err
 	}
-	
+
 	c.Summary = summary
 	c.UpdatedAt = time.Now()
-	
+
 	c.logger.Debug("Summary updated", logger.Fields{
-		"content_id": c.ID,
-		"has_one_line": summary.OneLine != "",
+		"content_id":    c.ID,
+		"has_one_line":  summary.OneLine != "",
 		"has_paragraph": summary.Paragraph != "",
-		"has_detailed": summary.Detailed != "",
+		"has_detailed":  summary.Detailed != "",
 	})
-	
+
 	return nil
 }
 
@@ -206,7 +206,7 @@ func (c *ContentItem) SetTags(tags []string) error {
 		c.logger.LogMemoroError(err, "Failed to set tags")
 		return err
 	}
-	
+
 	// 清理和验证每个标签
 	cleanTags := make([]string, 0, len(tags))
 	for i, tag := range tags {
@@ -221,16 +221,16 @@ func (c *ContentItem) SetTags(tags []string) error {
 		}
 		cleanTags = append(cleanTags, cleanTag)
 	}
-	
+
 	c.tagsList = cleanTags
 	c.UpdatedAt = time.Now()
-	
+
 	c.logger.Debug("Tags updated", logger.Fields{
 		"content_id": c.ID,
-		"tag_count": len(cleanTags),
-		"tags": cleanTags,
+		"tag_count":  len(cleanTags),
+		"tags":       cleanTags,
 	})
-	
+
 	return nil
 }
 
@@ -248,40 +248,40 @@ func (c *ContentItem) AddTag(tag string) error {
 	if cleanTag == "" {
 		return errors.ErrValidationFailed("tag", "cannot be empty")
 	}
-	
+
 	if len(cleanTag) > 100 {
 		return errors.ErrValidationFailed("tag", "exceeds 100 characters")
 	}
-	
+
 	if c.tagsList == nil {
 		c.tagsList = make([]string, 0)
 	}
-	
+
 	// 检查标签是否已存在
 	for _, existingTag := range c.tagsList {
 		if existingTag == cleanTag {
 			c.logger.Debug("Tag already exists, skipping", logger.Fields{
 				"content_id": c.ID,
-				"tag": cleanTag,
+				"tag":        cleanTag,
 			})
 			return nil // 标签已存在，不重复添加
 		}
 	}
-	
+
 	// 检查标签数量限制
 	if len(c.tagsList) >= 50 {
 		return errors.ErrValidationFailed("tags", "cannot have more than 50 tags")
 	}
-	
+
 	c.tagsList = append(c.tagsList, cleanTag)
 	c.UpdatedAt = time.Now()
-	
+
 	c.logger.Debug("Tag added", logger.Fields{
 		"content_id": c.ID,
-		"tag": cleanTag,
+		"tag":        cleanTag,
 		"total_tags": len(c.tagsList),
 	})
-	
+
 	return nil
 }
 
@@ -290,7 +290,7 @@ func (c *ContentItem) SetProcessedData(data map[string]interface{}) error {
 	if data == nil {
 		data = make(map[string]interface{})
 	}
-	
+
 	// 验证数据大小（序列化后不超过1MB）
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -298,34 +298,34 @@ func (c *ContentItem) SetProcessedData(data map[string]interface{}) error {
 			WithCause(err).
 			WithContext(map[string]interface{}{
 				"content_id": c.ID,
-				"data_keys": getMapKeys(data),
+				"data_keys":  getMapKeys(data),
 			})
 		c.logger.LogMemoroError(memoErr, "ProcessedData serialization failed")
 		return memoErr
 	}
-	
+
 	if len(jsonData) > 1024*1024 { // 1MB limit
 		err := errors.ErrValidationFailed("processed_data", "serialized data exceeds 1MB limit")
 		c.logger.LogMemoroError(err, "ProcessedData too large")
 		return err
 	}
-	
+
 	if c.processedDataMap == nil {
 		c.processedDataMap = make(map[string]interface{})
 	}
-	
+
 	// 深拷贝数据
 	for k, v := range data {
 		c.processedDataMap[k] = v
 	}
 	c.UpdatedAt = time.Now()
-	
+
 	c.logger.Debug("ProcessedData updated", logger.Fields{
 		"content_id": c.ID,
-		"data_size": len(jsonData),
-		"keys": getMapKeys(data),
+		"data_size":  len(jsonData),
+		"keys":       getMapKeys(data),
 	})
-	
+
 	return nil
 }
 
@@ -342,17 +342,17 @@ func (c *ContentItem) SetImportanceScore(score float64) error {
 	if score < 0.0 || score > 1.0 {
 		return errors.ErrValidationFailed("importance_score", fmt.Sprintf("must be between 0.0 and 1.0, got %f", score))
 	}
-	
+
 	oldScore := c.ImportanceScore
 	c.ImportanceScore = score
 	c.UpdatedAt = time.Now()
-	
+
 	c.logger.Debug("Importance score updated", logger.Fields{
 		"content_id": c.ID,
-		"old_score": oldScore,
-		"new_score": score,
+		"old_score":  oldScore,
+		"new_score":  score,
 	})
-	
+
 	return nil
 }
 
@@ -366,28 +366,28 @@ func (c *ContentItem) BeforeCreate(tx *gorm.DB) error {
 	if c.logger == nil {
 		c.logger = logger.NewLogger("content-model")
 	}
-	
+
 	// 验证数据
 	if err := c.Validate(); err != nil {
 		c.logger.LogMemoroError(err.(*errors.MemoroError), "Validation failed before create")
 		return err
 	}
-	
+
 	// 序列化processedDataMap到ProcessedData字段
 	if err := c.serializeProcessedData(); err != nil {
 		return err
 	}
-	
+
 	// 序列化tagsList到Tags字段
 	if err := c.serializeTags(); err != nil {
 		return err
 	}
-	
+
 	c.logger.Debug("ContentItem ready for database creation", logger.Fields{
 		"content_id": c.ID,
-		"type": string(c.Type),
+		"type":       string(c.Type),
 	})
-	
+
 	return nil
 }
 
@@ -396,27 +396,27 @@ func (c *ContentItem) BeforeUpdate(tx *gorm.DB) error {
 	if c.logger == nil {
 		c.logger = logger.NewLogger("content-model")
 	}
-	
+
 	// 验证数据
 	if err := c.Validate(); err != nil {
 		c.logger.LogMemoroError(err.(*errors.MemoroError), "Validation failed before update")
 		return err
 	}
-	
+
 	// 序列化数据
 	if err := c.serializeProcessedData(); err != nil {
 		return err
 	}
-	
+
 	if err := c.serializeTags(); err != nil {
 		return err
 	}
-	
+
 	c.logger.Debug("ContentItem ready for database update", logger.Fields{
 		"content_id": c.ID,
 		"updated_at": c.UpdatedAt,
 	})
-	
+
 	return nil
 }
 
@@ -425,23 +425,23 @@ func (c *ContentItem) AfterFind(tx *gorm.DB) error {
 	if c.logger == nil {
 		c.logger = logger.NewLogger("content-model")
 	}
-	
+
 	// 反序列化ProcessedData字段到processedDataMap
 	if err := c.deserializeProcessedData(); err != nil {
 		return err
 	}
-	
+
 	// 反序列化Tags字段到tagsList
 	if err := c.deserializeTags(); err != nil {
 		return err
 	}
-	
+
 	c.logger.Debug("ContentItem loaded from database", logger.Fields{
 		"content_id": c.ID,
-		"type": string(c.Type),
-		"tag_count": len(c.tagsList),
+		"type":       string(c.Type),
+		"tag_count":  len(c.tagsList),
 	})
-	
+
 	return nil
 }
 
@@ -454,7 +454,7 @@ func (c *ContentItem) serializeProcessedData() error {
 				WithCause(err).
 				WithContext(map[string]interface{}{
 					"content_id": c.ID,
-					"data_keys": getMapKeys(c.processedDataMap),
+					"data_keys":  getMapKeys(c.processedDataMap),
 				})
 			c.logger.LogMemoroError(memoErr, "ProcessedData marshaling failed")
 			return memoErr
@@ -472,7 +472,7 @@ func (c *ContentItem) deserializeProcessedData() error {
 			memoErr := errors.NewMemoroError(errors.ErrorTypeSystem, errors.ErrCodeSystemGeneric, "Failed to unmarshal processed data").
 				WithCause(err).
 				WithContext(map[string]interface{}{
-					"content_id": c.ID,
+					"content_id":  c.ID,
 					"data_length": len(c.ProcessedData),
 				})
 			c.logger.LogMemoroError(memoErr, "ProcessedData unmarshaling failed")
@@ -494,7 +494,7 @@ func (c *ContentItem) serializeTags() error {
 				WithCause(err).
 				WithContext(map[string]interface{}{
 					"content_id": c.ID,
-					"tag_count": len(c.tagsList),
+					"tag_count":  len(c.tagsList),
 				})
 			c.logger.LogMemoroError(memoErr, "Tags marshaling failed")
 			return memoErr
@@ -512,7 +512,7 @@ func (c *ContentItem) deserializeTags() error {
 			memoErr := errors.NewMemoroError(errors.ErrorTypeSystem, errors.ErrCodeSystemGeneric, "Failed to unmarshal tags").
 				WithCause(err).
 				WithContext(map[string]interface{}{
-					"content_id": c.ID,
+					"content_id":  c.ID,
 					"tags_length": len(c.Tags),
 				})
 			c.logger.LogMemoroError(memoErr, "Tags unmarshaling failed")

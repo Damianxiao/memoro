@@ -19,7 +19,7 @@ func HealthHandler(c *gin.Context) {
 		Status:    "ok",
 		Timestamp: time.Now().Unix(),
 	}
-	
+
 	c.JSON(http.StatusOK, response)
 }
 

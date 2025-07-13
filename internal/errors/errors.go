@@ -10,20 +10,20 @@ type ErrorType string
 
 const (
 	// 系统级错误
-	ErrorTypeSystem     ErrorType = "SYSTEM"
-	ErrorTypeDatabase   ErrorType = "DATABASE"
-	ErrorTypeNetwork    ErrorType = "NETWORK"
-	ErrorTypeConfig     ErrorType = "CONFIG"
-	
+	ErrorTypeSystem   ErrorType = "SYSTEM"
+	ErrorTypeDatabase ErrorType = "DATABASE"
+	ErrorTypeNetwork  ErrorType = "NETWORK"
+	ErrorTypeConfig   ErrorType = "CONFIG"
+
 	// 业务级错误
 	ErrorTypeBusiness   ErrorType = "BUSINESS"
 	ErrorTypeValidation ErrorType = "VALIDATION"
 	ErrorTypeAuth       ErrorType = "AUTH"
-	
+
 	// 集成错误
-	ErrorTypeWebSocket  ErrorType = "WEBSOCKET"
-	ErrorTypeLLM        ErrorType = "LLM"
-	ErrorTypeVector     ErrorType = "VECTOR"
+	ErrorTypeWebSocket ErrorType = "WEBSOCKET"
+	ErrorTypeLLM       ErrorType = "LLM"
+	ErrorTypeVector    ErrorType = "VECTOR"
 )
 
 // ErrorCode 错误码
@@ -31,19 +31,19 @@ type ErrorCode string
 
 const (
 	// 系统错误码 (E1xxx)
-	ErrCodeSystemGeneric    ErrorCode = "E1000"
-	ErrCodeDatabaseConnect  ErrorCode = "E1001"
-	ErrCodeDatabaseQuery    ErrorCode = "E1002"
-	ErrCodeNetworkTimeout   ErrorCode = "E1003"
-	ErrCodeConfigMissing    ErrorCode = "E1004"
-	ErrCodeConfigInvalid    ErrorCode = "E1005"
-	
+	ErrCodeSystemGeneric   ErrorCode = "E1000"
+	ErrCodeDatabaseConnect ErrorCode = "E1001"
+	ErrCodeDatabaseQuery   ErrorCode = "E1002"
+	ErrCodeNetworkTimeout  ErrorCode = "E1003"
+	ErrCodeConfigMissing   ErrorCode = "E1004"
+	ErrCodeConfigInvalid   ErrorCode = "E1005"
+
 	// 业务错误码 (E2xxx)
-	ErrCodeValidationFailed ErrorCode = "E2001"
-	ErrCodeResourceNotFound ErrorCode = "E2002"
+	ErrCodeValidationFailed  ErrorCode = "E2001"
+	ErrCodeResourceNotFound  ErrorCode = "E2002"
 	ErrCodeDuplicateResource ErrorCode = "E2003"
-	ErrCodeInvalidInput     ErrorCode = "E2004"
-	
+	ErrCodeInvalidInput      ErrorCode = "E2004"
+
 	// 集成错误码 (E3xxx)
 	ErrCodeWebSocketConnect ErrorCode = "E3001"
 	ErrCodeWebSocketMessage ErrorCode = "E3002"

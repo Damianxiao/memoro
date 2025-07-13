@@ -27,14 +27,14 @@ var (
 // InitLogger 初始化日志系统
 func InitLogger(level string, format string, output string, component string) (*Logger, error) {
 	logger := logrus.New()
-	
+
 	// 设置日志级别
 	logLevel, err := logrus.ParseLevel(level)
 	if err != nil {
 		logLevel = logrus.InfoLevel
 	}
 	logger.SetLevel(logLevel)
-	
+
 	// 设置输出格式
 	switch format {
 	case "json":
@@ -52,7 +52,7 @@ func InitLogger(level string, format string, output string, component string) (*
 			TimestampFormat: "2006-01-02 15:04:05",
 		})
 	}
-	
+
 	// 设置输出目标
 	if output != "" && output != "stdout" {
 		// 确保日志目录存在
@@ -60,22 +60,22 @@ func InitLogger(level string, format string, output string, component string) (*
 		if err := os.MkdirAll(logDir, 0755); err != nil {
 			return nil, errors.ErrConfigInvalid("log directory", err.Error()).WithCause(err)
 		}
-		
+
 		file, err := os.OpenFile(output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, errors.ErrConfigInvalid("log file", err.Error()).WithCause(err)
 		}
 		logger.SetOutput(file)
 	}
-	
+
 	memoLogger := &Logger{
 		Logger:    logger,
 		component: component,
 	}
-	
+
 	// 设置为默认日志器
 	defaultLogger = memoLogger
-	
+
 	return memoLogger, nil
 }
 
@@ -107,7 +107,7 @@ func (l *Logger) WithFields(fields Fields) *logrus.Entry {
 // WithError 添加错误信息
 func (l *Logger) WithError(err error) *logrus.Entry {
 	entry := l.Logger.WithField("component", l.component)
-	
+
 	if memoErr, ok := err.(*errors.MemoroError); ok {
 		return entry.WithFields(logrus.Fields{
 			"error_type":    memoErr.Type,
@@ -116,31 +116,31 @@ func (l *Logger) WithError(err error) *logrus.Entry {
 			"error_context": memoErr.Context,
 		})
 	}
-	
+
 	return entry.WithError(err)
 }
 
 // WithContext 从上下文中提取信息
 func (l *Logger) WithContext(ctx context.Context) *logrus.Entry {
 	entry := l.Logger.WithField("component", l.component)
-	
+
 	// 提取请求ID（如果存在）
 	if requestID := ctx.Value("request_id"); requestID != nil {
 		entry = entry.WithField("request_id", requestID)
 	}
-	
+
 	// 提取用户ID（如果存在）
 	if userID := ctx.Value("user_id"); userID != nil {
 		entry = entry.WithField("user_id", userID)
 	}
-	
+
 	return entry
 }
 
 // LogMemoroError 记录Memoro错误
 func (l *Logger) LogMemoroError(err *errors.MemoroError, message string) {
 	entry := l.WithError(err)
-	
+
 	switch err.Type {
 	case errors.ErrorTypeSystem, errors.ErrorTypeDatabase, errors.ErrorTypeNetwork:
 		entry.Error(message)

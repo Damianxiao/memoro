@@ -126,7 +126,7 @@ func TestWeChatWebSocketClient(t *testing.T) {
 				assert.Error(t, err, tt.description)
 			} else {
 				assert.NoError(t, err, tt.description)
-				
+
 				// 如果连接成功，测试基本功能
 				if err == nil {
 					// 测试连接状态

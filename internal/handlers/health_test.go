@@ -19,15 +19,15 @@ func TestHealthHandler(t *testing.T) {
 		expectedFields []string
 	}{
 		{
-			name:         "GET /health should return 200 OK",
-			method:       "GET",
-			expectedCode: http.StatusOK,
+			name:           "GET /health should return 200 OK",
+			method:         "GET",
+			expectedCode:   http.StatusOK,
 			expectedFields: []string{"status", "timestamp"},
 		},
 		{
 			name:         "POST /health should return 404 Not Found",
-			method:       "POST", 
-			expectedCode: http.StatusNotFound,  // Gin默认返回404给未注册的方法
+			method:       "POST",
+			expectedCode: http.StatusNotFound, // Gin默认返回404给未注册的方法
 		},
 	}
 
@@ -35,7 +35,7 @@ func TestHealthHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 设置测试路由
 			r := helper.SetupTestGin()
-			
+
 			// 这里会调用尚未实现的handler
 			RegisterHealthRoutes(r) // 这个函数还不存在，测试会失败
 
@@ -53,7 +53,7 @@ func TestHealthHandler(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to unmarshal response: %v", err)
 				}
-				
+
 				// 验证必要字段存在
 				for _, field := range tt.expectedFields {
 					if _, exists := response[field]; !exists {

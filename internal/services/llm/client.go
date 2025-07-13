@@ -20,7 +20,7 @@ type Client struct {
 
 // ChatMessage 聊天消息结构
 type ChatMessage struct {
-	Role    string `json:"role"`    // system, user, assistant
+	Role    string `json:"role"` // system, user, assistant
 	Content string `json:"content"`
 }
 
@@ -49,12 +49,12 @@ type ChatCompletionUsage struct {
 
 // ChatCompletionResponse OpenAI兼容的聊天完成响应
 type ChatCompletionResponse struct {
-	ID      string                  `json:"id"`
-	Object  string                  `json:"object"`
-	Created int64                   `json:"created"`
-	Model   string                  `json:"model"`
-	Choices []ChatCompletionChoice  `json:"choices"`
-	Usage   ChatCompletionUsage     `json:"usage"`
+	ID      string                 `json:"id"`
+	Object  string                 `json:"object"`
+	Created int64                  `json:"created"`
+	Model   string                 `json:"model"`
+	Choices []ChatCompletionChoice `json:"choices"`
+	Usage   ChatCompletionUsage    `json:"usage"`
 }
 
 // NewClient 创建新的LLM客户端
@@ -75,7 +75,7 @@ func NewClient() (*Client, error) {
 	httpClient.SetBaseURL(cfg.APIBase)
 	httpClient.SetTimeout(cfg.Timeout)
 	httpClient.SetHeader("Content-Type", "application/json")
-	
+
 	// 设置API密钥
 	if cfg.APIKey != "" {
 		httpClient.SetHeader("Authorization", fmt.Sprintf("Bearer %s", cfg.APIKey))
@@ -90,19 +90,26 @@ func NewClient() (*Client, error) {
 
 	// 添加请求日志
 	httpClient.OnBeforeRequest(func(c *resty.Client, req *resty.Request) error {
+		var bodySize int
+		if body, ok := req.Body.([]byte); ok {
+			bodySize = len(body)
+		} else {
+			bodySize = -1 // 未知大小
+		}
+		
 		clientLogger.Debug("LLM API request", logger.Fields{
 			"url":    req.URL,
 			"method": req.Method,
-			"size":   len(req.Body.([]byte)),
+			"size":   bodySize,
 		})
 		return nil
 	})
 
 	httpClient.OnAfterResponse(func(c *resty.Client, resp *resty.Response) error {
 		clientLogger.Debug("LLM API response", logger.Fields{
-			"status":    resp.StatusCode(),
-			"size":      len(resp.Body()),
-			"time":      resp.Time(),
+			"status": resp.StatusCode(),
+			"size":   len(resp.Body()),
+			"time":   resp.Time(),
 		})
 		return nil
 	})
@@ -154,10 +161,10 @@ func (c *Client) ChatCompletion(ctx context.Context, messages []ChatMessage) (*C
 	}
 
 	c.logger.Debug("Sending chat completion request", logger.Fields{
-		"model":        request.Model,
+		"model":         request.Model,
 		"message_count": len(messages),
-		"max_tokens":   request.MaxTokens,
-		"temperature":  request.Temperature,
+		"max_tokens":    request.MaxTokens,
+		"temperature":   request.Temperature,
 	})
 
 	// 发送请求
@@ -212,12 +219,12 @@ func (c *Client) ChatCompletion(ctx context.Context, messages []ChatMessage) (*C
 
 	c.logger.Debug("Chat completion successful", logger.Fields{
 		"response_id":       result.ID,
-		"model":            result.Model,
-		"choices":          len(result.Choices),
-		"prompt_tokens":    result.Usage.PromptTokens,
+		"model":             result.Model,
+		"choices":           len(result.Choices),
+		"prompt_tokens":     result.Usage.PromptTokens,
 		"completion_tokens": result.Usage.CompletionTokens,
-		"total_tokens":     result.Usage.TotalTokens,
-		"finish_reason":    result.Choices[0].FinishReason,
+		"total_tokens":      result.Usage.TotalTokens,
+		"finish_reason":     result.Choices[0].FinishReason,
 	})
 
 	return result, nil
@@ -267,7 +274,7 @@ func (c *Client) ValidateConnection(ctx context.Context) error {
 	}
 
 	c.logger.Info("LLM connection validation successful", logger.Fields{
-		"test_response": response,
+		"test_response":   response,
 		"response_length": len(response),
 	})
 

@@ -71,15 +71,15 @@ type VectorDBConfig struct {
 
 // LLMConfig LLM API配置
 type LLMConfig struct {
-	Provider    string        `mapstructure:"provider"`
-	APIBase     string        `mapstructure:"api_base"`
-	APIKey      string        `mapstructure:"api_key"`
-	Model       string        `mapstructure:"model"`
-	MaxTokens   int           `mapstructure:"max_tokens"`
-	Temperature float64       `mapstructure:"temperature"`
-	Timeout     time.Duration `mapstructure:"timeout"`
-	RetryTimes  int           `mapstructure:"retry_times"`
-	RetryDelay  time.Duration `mapstructure:"retry_delay"`
+	Provider    string          `mapstructure:"provider"`
+	APIBase     string          `mapstructure:"api_base"`
+	APIKey      string          `mapstructure:"api_key"`
+	Model       string          `mapstructure:"model"`
+	MaxTokens   int             `mapstructure:"max_tokens"`
+	Temperature float64         `mapstructure:"temperature"`
+	Timeout     time.Duration   `mapstructure:"timeout"`
+	RetryTimes  int             `mapstructure:"retry_times"`
+	RetryDelay  time.Duration   `mapstructure:"retry_delay"`
 	RateLimit   RateLimitConfig `mapstructure:"rate_limit"`
 }
 
@@ -110,12 +110,12 @@ type LoggingConfig struct {
 
 // ProcessingConfig 处理配置
 type ProcessingConfig struct {
-	MaxWorkers        int                    `mapstructure:"max_workers"`
-	QueueSize         int                    `mapstructure:"queue_size"`
-	Timeout           time.Duration          `mapstructure:"timeout"`
-	ContentSizeLimit  string                 `mapstructure:"content_size_limit"`
-	SummaryLevels     SummaryLevelsConfig    `mapstructure:"summary_levels"`
-	TagLimits         TagLimitsConfig        `mapstructure:"tag_limits"`
+	MaxWorkers     int                 `mapstructure:"max_workers"`
+	QueueSize      int                 `mapstructure:"queue_size"`
+	Timeout        time.Duration       `mapstructure:"timeout"`
+	MaxContentSize int                 `mapstructure:"max_content_size"` // 最大内容大小(字节)
+	SummaryLevels  SummaryLevelsConfig `mapstructure:"summary_levels"`
+	TagLimits      TagLimitsConfig     `mapstructure:"tag_limits"`
 }
 
 // SummaryLevelsConfig 摘要级别配置
@@ -127,8 +127,9 @@ type SummaryLevelsConfig struct {
 
 // TagLimitsConfig 标签限制配置
 type TagLimitsConfig struct {
-	MaxTags      int `mapstructure:"max_tags"`
-	MaxTagLength int `mapstructure:"max_tag_length"`
+	MaxTags           int     `mapstructure:"max_tags"`
+	MaxTagLength      int     `mapstructure:"max_tag_length"`
+	DefaultConfidence float64 `mapstructure:"default_confidence"` // 默认置信度
 }
 
 // CacheConfig 缓存配置
@@ -142,9 +143,9 @@ type CacheConfig struct {
 
 // SecurityConfig 安全配置
 type SecurityConfig struct {
-	APIKeyHeader string                `mapstructure:"api_key_header"`
-	CORSEnabled  bool                  `mapstructure:"cors_enabled"`
-	CORSOrigins  []string              `mapstructure:"cors_origins"`
+	APIKeyHeader string                  `mapstructure:"api_key_header"`
+	CORSEnabled  bool                    `mapstructure:"cors_enabled"`
+	CORSOrigins  []string                `mapstructure:"cors_origins"`
 	RateLimiting SecurityRateLimitConfig `mapstructure:"rate_limiting"`
 }
 
@@ -157,9 +158,9 @@ type SecurityRateLimitConfig struct {
 
 // MonitoringConfig 监控配置
 type MonitoringConfig struct {
-	MetricsEnabled        bool          `mapstructure:"metrics_enabled"`
-	HealthCheckInterval   time.Duration `mapstructure:"health_check_interval"`
-	PerformanceTracking   bool          `mapstructure:"performance_tracking"`
+	MetricsEnabled      bool          `mapstructure:"metrics_enabled"`
+	HealthCheckInterval time.Duration `mapstructure:"health_check_interval"`
+	PerformanceTracking bool          `mapstructure:"performance_tracking"`
 }
 
 var (
@@ -221,9 +222,9 @@ func Load(configPath string) (*Config, error) {
 
 	globalConfig = config
 	configLogger.Info("Configuration loaded successfully", logger.Fields{
-		"server_port": config.Server.Port,
+		"server_port":   config.Server.Port,
 		"database_type": config.Database.Type,
-		"llm_provider": config.LLM.Provider,
+		"llm_provider":  config.LLM.Provider,
 		"cache_enabled": config.Cache.Enabled,
 	})
 

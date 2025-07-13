@@ -26,16 +26,16 @@ func main() {
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		mainLogger.Error("Failed to load configuration", logger.Fields{
-			"error": err.Error(),
+			"error":       err.Error(),
 			"config_path": *configPath,
 		})
 		os.Exit(1)
 	}
 
 	mainLogger.Info("Application starting", logger.Fields{
-		"version": "v0.1.0",
-		"mode": cfg.Server.Mode,
-		"port": cfg.Server.Port,
+		"version":     "v0.1.0",
+		"mode":        cfg.Server.Mode,
+		"port":        cfg.Server.Port,
 		"config_path": *configPath,
 	})
 
@@ -48,7 +48,7 @@ func main() {
 
 	// 创建Gin实例
 	r := gin.New()
-	
+
 	// 添加中间件
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
@@ -68,14 +68,14 @@ func main() {
 	// 在goroutine中启动服务器
 	go func() {
 		mainLogger.Info("HTTP server starting", logger.Fields{
-			"address": serverAddr,
-			"read_timeout": cfg.Server.ReadTimeout,
+			"address":       serverAddr,
+			"read_timeout":  cfg.Server.ReadTimeout,
 			"write_timeout": cfg.Server.WriteTimeout,
 		})
-		
+
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			mainLogger.Error("Failed to start HTTP server", logger.Fields{
-				"error": err.Error(),
+				"error":   err.Error(),
 				"address": serverAddr,
 			})
 			os.Exit(1)
@@ -86,16 +86,16 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	
+
 	mainLogger.Info("Shutting down server...")
 
 	// 使用配置的超时时间进行优雅关闭
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
 	defer cancel()
-	
+
 	if err := srv.Shutdown(ctx); err != nil {
 		mainLogger.Error("Server forced to shutdown", logger.Fields{
-			"error": err.Error(),
+			"error":   err.Error(),
 			"timeout": cfg.Server.ShutdownTimeout,
 		})
 		os.Exit(1)
@@ -111,7 +111,7 @@ func setupRoutes(r *gin.Engine) {
 	{
 		// 健康检查
 		v1.GET("/health", handlers.HealthHandler)
-		
+
 		// 预留其他API端点
 		// TODO: 添加内容管理API
 		// TODO: 添加搜索API

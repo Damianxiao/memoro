@@ -64,7 +64,7 @@ func (c *WeChatWebSocketClient) Connect(ctx context.Context) error {
 	dialer.HandshakeTimeout = 10 * time.Second
 
 	c.logger.Info("Attempting to connect to WebSocket", logger.Fields{
-		"url": wsURL,
+		"url":     wsURL,
 		"timeout": "10s",
 	})
 
@@ -73,7 +73,7 @@ func (c *WeChatWebSocketClient) Connect(ctx context.Context) error {
 	if err != nil {
 		memoErr := errors.ErrWebSocketConnection("Failed to establish WebSocket connection", err).
 			WithContext(map[string]interface{}{
-				"url": wsURL,
+				"url":     wsURL,
 				"timeout": "10s",
 			})
 		c.logger.LogMemoroError(memoErr, "WebSocket connection failed")
@@ -82,9 +82,9 @@ func (c *WeChatWebSocketClient) Connect(ctx context.Context) error {
 
 	c.conn = conn
 	c.connected = true
-	
+
 	c.logger.Info("Successfully connected to WebSocket", logger.Fields{
-		"url": wsURL,
+		"url":           wsURL,
 		"connection_id": fmt.Sprintf("%p", conn),
 	})
 
@@ -254,7 +254,7 @@ func (c *WeChatWebSocketClient) handleMessage(message []byte) {
 	if handler != nil {
 		if err := handler(message); err != nil {
 			c.logger.Error("Message handler error", logger.Fields{
-				"error": err.Error(),
+				"error":        err.Error(),
 				"message_size": len(message),
 			})
 		}

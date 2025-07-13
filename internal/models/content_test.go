@@ -53,7 +53,7 @@ func TestContentItem_BasicFields(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建ContentItem实例
 			item := NewContentItem(tt.contentType, tt.rawContent, tt.userID)
-			
+
 			if tt.expectValid {
 				require.NotNil(t, item, "ContentItem should not be nil")
 				assert.NotEmpty(t, item.ID, "ID should be generated")
@@ -81,7 +81,7 @@ func TestContentItem_Summary(t *testing.T) {
 	}
 
 	item.SetSummary(summary)
-	
+
 	retrievedSummary := item.GetSummary()
 	assert.Equal(t, summary.OneLine, retrievedSummary.OneLine)
 	assert.Equal(t, summary.Paragraph, retrievedSummary.Paragraph)
@@ -115,22 +115,22 @@ func TestContentItem_ProcessedData(t *testing.T) {
 
 	// 测试处理后的数据存储
 	processedData := map[string]interface{}{
-		"title":       "示例网站",
-		"description": "这是一个示例网站的描述",
-		"keywords":    []string{"示例", "网站", "测试"},
+		"title":        "示例网站",
+		"description":  "这是一个示例网站的描述",
+		"keywords":     []string{"示例", "网站", "测试"},
 		"extract_time": time.Now().Unix(),
 	}
 
 	item.SetProcessedData(processedData)
-	
+
 	retrievedData := item.GetProcessedData()
 	assert.Equal(t, processedData["title"], retrievedData["title"])
 	assert.Equal(t, processedData["description"], retrievedData["description"])
-	
+
 	// 验证JSON序列化/反序列化
 	jsonData, err := json.Marshal(retrievedData)
 	require.NoError(t, err)
-	
+
 	var unmarshaled map[string]interface{}
 	err = json.Unmarshal(jsonData, &unmarshaled)
 	require.NoError(t, err)
@@ -143,7 +143,7 @@ func TestContentItem_ImportanceScore(t *testing.T) {
 
 	// 测试重要性评分
 	scores := []float64{0.0, 0.5, 0.8, 1.0}
-	
+
 	for _, score := range scores {
 		item.SetImportanceScore(score)
 		assert.Equal(t, score, item.GetImportanceScore())

@@ -20,16 +20,16 @@ type Summarizer struct {
 
 // SummaryRequest 摘要请求
 type SummaryRequest struct {
-	Content     string                  `json:"content"`
-	ContentType models.ContentType      `json:"content_type"`
-	Context     map[string]interface{}  `json:"context,omitempty"` // 可选的上下文信息
+	Content     string                 `json:"content"`
+	ContentType models.ContentType     `json:"content_type"`
+	Context     map[string]interface{} `json:"context,omitempty"` // 可选的上下文信息
 }
 
 // SummaryResult 摘要结果
 type SummaryResult struct {
-	OneLine   string `json:"one_line"`   // 一句话摘要
-	Paragraph string `json:"paragraph"`  // 段落摘要
-	Detailed  string `json:"detailed"`   // 详细摘要
+	OneLine   string `json:"one_line"`  // 一句话摘要
+	Paragraph string `json:"paragraph"` // 段落摘要
+	Detailed  string `json:"detailed"`  // 详细摘要
 }
 
 // NewSummarizer 创建新的摘要生成器
@@ -50,9 +50,9 @@ func NewSummarizer(client *Client) (*Summarizer, error) {
 	}
 
 	summarizer.logger.Info("Summarizer initialized", logger.Fields{
-		"one_line_max":   cfg.Processing.SummaryLevels.OneLineMaxLength,
-		"paragraph_max":  cfg.Processing.SummaryLevels.ParagraphMaxLength,
-		"detailed_max":   cfg.Processing.SummaryLevels.DetailedMaxLength,
+		"one_line_max":  cfg.Processing.SummaryLevels.OneLineMaxLength,
+		"paragraph_max": cfg.Processing.SummaryLevels.ParagraphMaxLength,
+		"detailed_max":  cfg.Processing.SummaryLevels.DetailedMaxLength,
 	})
 
 	return summarizer, nil
@@ -64,8 +64,8 @@ func (s *Summarizer) GenerateSummary(ctx context.Context, request SummaryRequest
 		return nil, errors.ErrValidationFailed("content", "cannot be empty")
 	}
 
-	if len(request.Content) > 100000 { // 100KB限制
-		return nil, errors.ErrValidationFailed("content", "content too large (max 100KB)")
+	if len(request.Content) > s.config.MaxContentSize {
+		return nil, errors.ErrValidationFailed("content", fmt.Sprintf("content too large (max %d bytes)", s.config.MaxContentSize))
 	}
 
 	s.logger.Debug("Generating summary", logger.Fields{
@@ -80,21 +80,33 @@ func (s *Summarizer) GenerateSummary(ctx context.Context, request SummaryRequest
 	// 生成一句话摘要
 	oneLine, err := s.generateOneLineSummary(ctx, systemPrompt, request.Content)
 	if err != nil {
-		s.logger.LogMemoroError(err.(*errors.MemoroError), "Failed to generate one-line summary")
+		if memoErr, ok := err.(*errors.MemoroError); ok {
+			s.logger.LogMemoroError(memoErr, "Failed to generate one-line summary")
+		} else {
+			s.logger.Error("Failed to generate one-line summary", logger.Fields{"error": err.Error()})
+		}
 		return nil, err
 	}
 
 	// 生成段落摘要
 	paragraph, err := s.generateParagraphSummary(ctx, systemPrompt, request.Content)
 	if err != nil {
-		s.logger.LogMemoroError(err.(*errors.MemoroError), "Failed to generate paragraph summary")
+		if memoErr, ok := err.(*errors.MemoroError); ok {
+			s.logger.LogMemoroError(memoErr, "Failed to generate paragraph summary")
+		} else {
+			s.logger.Error("Failed to generate paragraph summary", logger.Fields{"error": err.Error()})
+		}
 		return nil, err
 	}
 
 	// 生成详细摘要
 	detailed, err := s.generateDetailedSummary(ctx, systemPrompt, request.Content)
 	if err != nil {
-		s.logger.LogMemoroError(err.(*errors.MemoroError), "Failed to generate detailed summary")
+		if memoErr, ok := err.(*errors.MemoroError); ok {
+			s.logger.LogMemoroError(memoErr, "Failed to generate detailed summary")
+		} else {
+			s.logger.Error("Failed to generate detailed summary", logger.Fields{"error": err.Error()})
+		}
 		return nil, err
 	}
 
@@ -111,9 +123,9 @@ func (s *Summarizer) GenerateSummary(ctx context.Context, request SummaryRequest
 	}
 
 	s.logger.Debug("Summary generation completed", logger.Fields{
-		"one_line_length":   len(result.OneLine),
-		"paragraph_length":  len(result.Paragraph),
-		"detailed_length":   len(result.Detailed),
+		"one_line_length":  len(result.OneLine),
+		"paragraph_length": len(result.Paragraph),
+		"detailed_length":  len(result.Detailed),
 	})
 
 	return result, nil
