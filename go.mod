@@ -33,11 +33,11 @@ require (
 )
 
 require (
-	github.com/go-resty/resty/v2 v2.7.0   // HTTP客户端
+	github.com/go-resty/resty/v2 v2.7.0 // HTTP客户端
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/viper v1.16.0         // 配置管理
+	github.com/spf13/viper v1.16.0 // 配置管理
 	gorm.io/driver/sqlite v1.5.3
 	gorm.io/gorm v1.25.4
 )
