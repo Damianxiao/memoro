@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # WeChatPadPro 主服务
+  wechatpadpro:
+    image: registry.cn-hangzhou.aliyuncs.com/wechatpad/wechatpadpro:v0.11
+    container_name: memoro_wechatpadpro
+    restart: always
+    ports:
+      - "1239:1239"
+    volumes:
+      - wechatpadpro_data:/app/data
+      - wechatpadpro_logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+      - DEBUG=true
+      - ADMIN_KEY=12345
+      - HOST=0.0.0.0
+      - PORT=1239
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - REDIS_PASS=123456
+      - MYSQL_CONNECT_STR=wechatpadpro:123456@tcp(mysql:3306)/wechatpadpro?charset=utf8mb4&parseTime=true&loc=Local
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - memoro-network
+
+  # Redis 缓存服务
+  redis:
+    image: registry.cn-hangzhou.aliyuncs.com/wechatpad/wechatpadpro-redis:v0.1
+    container_name: memoro_redis
+    restart: always
+    command: redis-server --requirepass 123456
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - memoro-network
+
+  # MySQL 数据库服务
+  mysql:
+    image: registry.cn-hangzhou.aliyuncs.com/wechatpad/wechatpadpro-mysql:v0.11
+    container_name: memoro_mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=wechatpadpro
+      - MYSQL_USER=wechatpadpro
+      - MYSQL_PASSWORD=123456
+      - TZ=Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wechatpadpro", "-p123456"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - memoro-network
+
+  # Chroma 向量数据库 (为Memoro应用准备)
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: memoro_chroma
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/data
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
+    networks:
+      - memoro-network
+
+networks:
+  memoro-network:
+    driver: bridge
+
+volumes:
+  # WeChatPadPro 相关数据卷
+  wechatpadpro_data:
+  wechatpadpro_logs:
+  redis_data:
+  mysql_data:
+  # Memoro 应用数据卷
+  chroma_data:
