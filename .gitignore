@@ -85,3 +85,5 @@ database.sqlite
 *.bak
 CLAUDE.md
 rules/
+LangBot/
+memoro
