@@ -18,6 +18,7 @@ type SearchEngine struct {
 	chromaClient        *ChromaClient
 	embeddingService    *EmbeddingService
 	similarityCalc      *SimilarityCalculator
+	cacheManager        *VectorCacheManager
 	config              config.VectorDBConfig
 	logger              *logger.Logger
 }
@@ -93,10 +94,14 @@ func NewSearchEngine() (*SearchEngine, error) {
 	// 初始化相似度计算器
 	similarityCalc := NewSimilarityCalculator()
 
+	// 初始化缓存管理器
+	cacheManager := NewVectorCacheManager(cfg)
+
 	engine := &SearchEngine{
 		chromaClient:     chromaClient,
 		embeddingService: embeddingService,
 		similarityCalc:   similarityCalc,
+		cacheManager:     cacheManager,
 		config:           cfg.VectorDB,
 		logger:           searchLogger,
 	}
@@ -244,6 +249,18 @@ func (se *SearchEngine) generateQueryVector(ctx context.Context, query string, o
 		"query_length": len(query),
 	})
 
+	// 尝试从缓存获取
+	if cachedVector, found := se.cacheManager.GetQueryVector(query, options); found {
+		se.logger.Debug("Query vector cache hit", logger.Fields{
+			"query_length":   len(query),
+			"vector_length":  len(cachedVector),
+		})
+		return cachedVector, nil
+	}
+
+	// 缓存未命中，生成新的向量
+	se.logger.Debug("Query vector cache miss, generating new vector")
+
 	// 创建embedding请求
 	embeddingReq := &EmbeddingRequest{
 		Text:        query,
@@ -261,7 +278,10 @@ func (se *SearchEngine) generateQueryVector(ctx context.Context, query string, o
 		return nil, err
 	}
 
-	se.logger.Debug("Query vector generated", logger.Fields{
+	// 缓存结果
+	se.cacheManager.SetQueryVector(query, options, result.Vector)
+
+	se.logger.Debug("Query vector generated and cached", logger.Fields{
 		"dimension":   result.Dimension,
 		"tokens_used": result.TokensUsed,
 	})
@@ -662,11 +682,15 @@ func (se *SearchEngine) GetSearchStats(ctx context.Context) (map[string]interfac
 		return nil, err
 	}
 
+	// 获取缓存统计信息
+	cacheInfo := se.cacheManager.GetCacheInfo()
+
 	stats := map[string]interface{}{
 		"collection_info":    collectionInfo,
+		"cache_info":         cacheInfo,
 		"engine_type":        "semantic_search",
 		"similarity_types":   []string{"cosine", "euclidean", "dot", "manhattan"},
-		"supported_features": []string{"vector_search", "metadata_filtering", "reranking", "batch_operations"},
+		"supported_features": []string{"vector_search", "metadata_filtering", "reranking", "batch_operations", "caching"},
 	}
 
 	return stats, nil
@@ -714,6 +738,12 @@ func (se *SearchEngine) Close() error {
 	se.logger.Info("Closing search engine")
 
 	var err error
+
+	// 关闭缓存管理器
+	if closeErr := se.cacheManager.Close(); closeErr != nil {
+		se.logger.Error("Failed to close cache manager", logger.Fields{"error": closeErr.Error()})
+		err = closeErr
+	}
 
 	// 关闭Chroma客户端
 	if closeErr := se.chromaClient.Close(); closeErr != nil {

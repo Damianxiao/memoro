@@ -1,0 +1,41 @@
+# Vector DB Cache Configuration Example
+# Add this to your config.yaml
+
+vector_db:
+  type: "chroma"
+  host: "localhost"
+  port: 8000
+  collection: "memoro_vectors"
+  timeout: 30s
+  retry_times: 3
+  batch_size: 1000
+  
+  # Cache Configuration
+  cache:
+    # Query Vector Cache - 查询向量缓存
+    query_vector_ttl: 1h              # 缓存存活时间: 1小时
+    query_vector_max_size: 10000      # 最大缓存条目: 10,000个查询向量
+    
+    # Recommendation Cache - 推荐结果缓存  
+    recommendation_ttl: 30m           # 缓存存活时间: 30分钟
+    recommendation_max_size: 5000     # 最大缓存条目: 5,000个推荐结果
+    
+    # User Preference Cache - 用户偏好缓存
+    user_preference_ttl: 24h          # 缓存存活时间: 24小时
+    user_preference_max_size: 1000    # 最大缓存条目: 1,000个用户偏好
+    
+    # Cleanup Settings - 清理设置
+    cleanup_interval: 10m             # 清理间隔: 10分钟
+    
+  # Connection Pool Configuration (准备在下个优化中实现)
+  connection_pool:
+    max_connections: 100              # 最大连接数
+    min_connections: 10               # 最小连接数  
+    idle_timeout: 5m                  # 空闲超时
+    health_check: true                # 启用健康检查
+    health_interval: 1m               # 健康检查间隔
+
+# Performance Monitoring (可选)
+monitoring:
+  enable_cache_metrics: true          # 启用缓存指标
+  cache_hit_ratio_threshold: 0.8     # 缓存命中率告警阈值

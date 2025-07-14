@@ -132,6 +132,25 @@ func (r *Recommender) GetRecommendations(ctx context.Context, req *Recommendatio
 		"max_recommendations": req.MaxRecommendations,
 	})
 
+	// 尝试从缓存获取推荐结果
+	if cachedRecommendations, found := r.searchEngine.cacheManager.GetRecommendation(req); found {
+		r.logger.Debug("Recommendation cache hit", logger.Fields{
+			"type":            string(req.Type),
+			"user_id":         req.UserID,
+			"recommendations": len(cachedRecommendations),
+		})
+
+		return &RecommendationResponse{
+			Recommendations:    cachedRecommendations,
+			TotalFound:         len(cachedRecommendations),
+			ProcessTime:        time.Since(startTime),
+			RecommendationType: req.Type,
+		}, nil
+	}
+
+	// 缓存未命中，生成新的推荐
+	r.logger.Debug("Recommendation cache miss, generating new recommendations")
+
 	// 设置默认值
 	if req.MaxRecommendations <= 0 {
 		req.MaxRecommendations = 10
@@ -180,6 +199,9 @@ func (r *Recommender) GetRecommendations(ctx context.Context, req *Recommendatio
 		rec.Rank = i + 1
 	}
 
+	// 缓存推荐结果
+	r.searchEngine.cacheManager.SetRecommendation(req, recommendations)
+
 	processTime := time.Since(startTime)
 
 	response := &RecommendationResponse{
@@ -194,7 +216,7 @@ func (r *Recommender) GetRecommendations(ctx context.Context, req *Recommendatio
 		},
 	}
 
-	r.logger.Info("Recommendations generated", logger.Fields{
+	r.logger.Info("Recommendations generated and cached", logger.Fields{
 		"type":         string(req.Type),
 		"count":        len(recommendations),
 		"process_time": processTime,

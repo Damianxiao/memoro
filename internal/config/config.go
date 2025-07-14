@@ -60,13 +60,35 @@ type DatabaseConfig struct {
 
 // VectorDBConfig 向量数据库配置
 type VectorDBConfig struct {
-	Type       string        `mapstructure:"type"`
-	Host       string        `mapstructure:"host"`
-	Port       int           `mapstructure:"port"`
-	Collection string        `mapstructure:"collection"`
-	Timeout    time.Duration `mapstructure:"timeout"`
-	RetryTimes int           `mapstructure:"retry_times"`
-	BatchSize  int           `mapstructure:"batch_size"`
+	Type        string                    `mapstructure:"type"`
+	Host        string                    `mapstructure:"host"`
+	Port        int                       `mapstructure:"port"`
+	Collection  string                    `mapstructure:"collection"`
+	Timeout     time.Duration             `mapstructure:"timeout"`
+	RetryTimes  int                       `mapstructure:"retry_times"`
+	BatchSize   int                       `mapstructure:"batch_size"`
+	CacheConfig *VectorCacheConfig        `mapstructure:"cache"`
+	PoolConfig  *ConnectionPoolConfig     `mapstructure:"connection_pool"`
+}
+
+// VectorCacheConfig 向量缓存配置
+type VectorCacheConfig struct {
+	QueryVectorTTL        time.Duration `mapstructure:"query_vector_ttl"`
+	QueryVectorMaxSize    int           `mapstructure:"query_vector_max_size"`
+	RecommendationTTL     time.Duration `mapstructure:"recommendation_ttl"`
+	RecommendationMaxSize int           `mapstructure:"recommendation_max_size"`
+	UserPreferenceTTL     time.Duration `mapstructure:"user_preference_ttl"`
+	UserPreferenceMaxSize int           `mapstructure:"user_preference_max_size"`
+	CleanupInterval       time.Duration `mapstructure:"cleanup_interval"`
+}
+
+// ConnectionPoolConfig 连接池配置
+type ConnectionPoolConfig struct {
+	MaxConnections int           `mapstructure:"max_connections"`
+	MinConnections int           `mapstructure:"min_connections"`
+	IdleTimeout    time.Duration `mapstructure:"idle_timeout"`
+	HealthCheck    bool          `mapstructure:"health_check"`
+	HealthInterval time.Duration `mapstructure:"health_interval"`
 }
 
 // LLMConfig LLM API配置
