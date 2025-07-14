@@ -22,22 +22,22 @@ type ChromaClient struct {
 
 // VectorDocument 向量文档结构
 type VectorDocument struct {
-	ID         string                 `json:"id"`         // 文档ID
-	Content    string                 `json:"content"`    // 文档内容
-	Embedding  []float32              `json:"embedding"`  // 向量表示
-	Metadata   map[string]interface{} `json:"metadata"`   // 元数据
-	Distance   float32                `json:"distance"`   // 相似度距离（查询时使用）
-	CreatedAt  time.Time              `json:"created_at"` // 创建时间
+	ID        string                 `json:"id"`         // 文档ID
+	Content   string                 `json:"content"`    // 文档内容
+	Embedding []float32              `json:"embedding"`  // 向量表示
+	Metadata  map[string]interface{} `json:"metadata"`   // 元数据
+	Distance  float32                `json:"distance"`   // 相似度距离（查询时使用）
+	CreatedAt time.Time              `json:"created_at"` // 创建时间
 }
 
 // SearchQuery 搜索查询结构
 type SearchQuery struct {
-	QueryText    string                 `json:"query_text"`              // 查询文本
-	QueryVector  []float32              `json:"query_vector,omitempty"`  // 查询向量（可选）
-	TopK         int                    `json:"top_k"`                   // 返回结果数量
-	Filter       map[string]interface{} `json:"filter,omitempty"`        // 过滤条件
-	IncludeText  bool                   `json:"include_text"`            // 是否包含原文
-	MinSimilarity float32               `json:"min_similarity"`          // 最小相似度阈值
+	QueryText     string                 `json:"query_text"`             // 查询文本
+	QueryVector   []float32              `json:"query_vector,omitempty"` // 查询向量（可选）
+	TopK          int                    `json:"top_k"`                  // 返回结果数量
+	Filter        map[string]interface{} `json:"filter,omitempty"`       // 过滤条件
+	IncludeText   bool                   `json:"include_text"`           // 是否包含原文
+	MinSimilarity float32                `json:"min_similarity"`         // 最小相似度阈值
 }
 
 // SearchResult 搜索结果
@@ -83,11 +83,11 @@ func NewChromaClient() (*ChromaClient, error) {
 	}
 
 	chromaLogger.Info("Chroma client initialized", logger.Fields{
-		"server_url":   serverURL,
-		"collection":   cfg.VectorDB.Collection,
-		"batch_size":   cfg.VectorDB.BatchSize,
-		"retry_times":  cfg.VectorDB.RetryTimes,
-		"timeout":      cfg.VectorDB.Timeout,
+		"server_url":  serverURL,
+		"collection":  cfg.VectorDB.Collection,
+		"batch_size":  cfg.VectorDB.BatchSize,
+		"retry_times": cfg.VectorDB.RetryTimes,
+		"timeout":     cfg.VectorDB.Timeout,
 	})
 
 	return chromaClient, nil
@@ -150,10 +150,10 @@ func (cc *ChromaClient) AddDocument(ctx context.Context, doc *VectorDocument) er
 	}
 
 	cc.logger.Debug("Adding document to vector database", logger.Fields{
-		"document_id":     doc.ID,
-		"content_length":  len(doc.Content),
-		"embedding_size":  len(doc.Embedding),
-		"metadata_keys":   getMetadataKeys(doc.Metadata),
+		"document_id":    doc.ID,
+		"content_length": len(doc.Content),
+		"embedding_size": len(doc.Embedding),
+		"metadata_keys":  getMetadataKeys(doc.Metadata),
 	})
 
 	// 准备数据
@@ -314,10 +314,10 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 
 	// 构建查询选项
 	var queryOptions []types.CollectionQueryOption
-	
+
 	if queryEmbedding != nil {
 		// 向量查询
-		queryOptions = append(queryOptions, 
+		queryOptions = append(queryOptions,
 			types.WithQueryEmbedding(queryEmbedding),
 			types.WithNResults(int32(query.TopK)),
 			types.WithInclude(types.IDocuments, types.IEmbeddings, types.IMetadatas, types.IDistances),
@@ -332,7 +332,7 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 	} else {
 		return nil, errors.ErrValidationFailed("query", "either query_vector or query_text must be provided")
 	}
-	
+
 	// 添加过滤条件
 	if len(query.Filter) > 0 {
 		queryOptions = append(queryOptions, types.WithWhereMap(query.Filter))
@@ -354,7 +354,7 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 
 	// 处理查询结果
 	documents := make([]*VectorDocument, 0)
-	
+
 	if queryResult != nil && len(queryResult.Ids) > 0 {
 		for i := 0; i < len(queryResult.Ids[0]); i++ {
 			// 计算相似度（距离转换为相似度）
@@ -362,9 +362,9 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 			if len(queryResult.Distances) > 0 && len(queryResult.Distances[0]) > i {
 				distance = float32(queryResult.Distances[0][i])
 			}
-			
+
 			similarity := 1.0 - distance // L2距离转换为相似度
-			
+
 			// 应用最小相似度过滤
 			if similarity < query.MinSimilarity {
 				continue
@@ -390,7 +390,7 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 			// 设置元数据
 			if len(queryResult.Metadatas) > 0 && len(queryResult.Metadatas[0]) > i {
 				doc.Metadata = queryResult.Metadatas[0][i]
-				
+
 				// 从元数据中恢复创建时间
 				if createdAtVal, exists := doc.Metadata["created_at"]; exists {
 					if createdAtFloat, ok := createdAtVal.(float64); ok {
@@ -413,8 +413,8 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 	}
 
 	cc.logger.Debug("Vector search completed", logger.Fields{
-		"query_time":    queryTime,
-		"total_results": len(documents),
+		"query_time":       queryTime,
+		"total_results":    len(documents),
 		"filtered_results": result.TotalResults,
 	})
 
@@ -432,7 +432,7 @@ func (cc *ChromaClient) GetDocument(ctx context.Context, id string) (*VectorDocu
 	})
 
 	// 通过ID查询文档
-	getResult, err := cc.collection.GetWithOptions(ctx, 
+	getResult, err := cc.collection.GetWithOptions(ctx,
 		types.WithIds([]string{id}),
 		types.WithInclude(types.IDocuments, types.IEmbeddings, types.IMetadatas),
 	)
@@ -471,7 +471,7 @@ func (cc *ChromaClient) GetDocument(ctx context.Context, id string) (*VectorDocu
 	// 设置元数据
 	if len(getResult.Metadatas) > 0 {
 		doc.Metadata = getResult.Metadatas[0]
-		
+
 		// 从元数据中恢复创建时间
 		if createdAtVal, exists := doc.Metadata["created_at"]; exists {
 			if createdAtFloat, ok := createdAtVal.(float64); ok {
@@ -539,7 +539,7 @@ func (cc *ChromaClient) UpdateDocument(ctx context.Context, doc *VectorDocument)
 
 	// 准备更新数据
 	ids := []string{doc.ID}
-	
+
 	var embeddings []*types.Embedding
 	if len(doc.Embedding) > 0 {
 		// Convert float32 slice to interface slice for Chroma API
@@ -557,12 +557,12 @@ func (cc *ChromaClient) UpdateDocument(ctx context.Context, doc *VectorDocument)
 		}
 		embeddings = []*types.Embedding{embedding}
 	}
-	
+
 	var documents []string
 	if doc.Content != "" {
 		documents = []string{doc.Content}
 	}
-	
+
 	var metadatas []map[string]interface{}
 	if doc.Metadata != nil {
 		// 添加更新时间到元数据
@@ -639,10 +639,10 @@ func (cc *ChromaClient) HealthCheck(ctx context.Context) error {
 // Close 关闭客户端连接
 func (cc *ChromaClient) Close() error {
 	cc.logger.Info("Closing Chroma client")
-	
+
 	// Chroma客户端不需要显式关闭连接
 	// 这里主要是为了符合接口规范
-	
+
 	cc.logger.Info("Chroma client closed")
 	return nil
 }
@@ -652,7 +652,7 @@ func getMetadataKeys(metadata map[string]interface{}) []string {
 	if metadata == nil {
 		return []string{}
 	}
-	
+
 	keys := make([]string, 0, len(metadata))
 	for k := range metadata {
 		keys = append(keys, k)

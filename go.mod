@@ -63,6 +63,7 @@ require (
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/yalue/onnxruntime_go v1.19.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

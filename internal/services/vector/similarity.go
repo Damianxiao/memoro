@@ -17,10 +17,10 @@ type SimilarityCalculator struct {
 type SimilarityType string
 
 const (
-	SimilarityTypeCosine    SimilarityType = "cosine"    // 余弦相似度
-	SimilarityTypeEuclidean SimilarityType = "euclidean" // 欧氏距离
-	SimilarityTypeDotProduct SimilarityType = "dot"      // 点积相似度
-	SimilarityTypeManhattan SimilarityType = "manhattan" // 曼哈顿距离
+	SimilarityTypeCosine     SimilarityType = "cosine"    // 余弦相似度
+	SimilarityTypeEuclidean  SimilarityType = "euclidean" // 欧氏距离
+	SimilarityTypeDotProduct SimilarityType = "dot"       // 点积相似度
+	SimilarityTypeManhattan  SimilarityType = "manhattan" // 曼哈顿距离
 )
 
 // SimilarityResult 相似度计算结果
@@ -33,9 +33,9 @@ type SimilarityResult struct {
 
 // SimilarityMatrix 相似度矩阵
 type SimilarityMatrix struct {
-	DocumentIDs []string    `json:"document_ids"` // 文档ID列表
-	Matrix      [][]float64 `json:"matrix"`       // 相似度矩阵
-	Type        SimilarityType `json:"type"`      // 计算类型
+	DocumentIDs []string       `json:"document_ids"` // 文档ID列表
+	Matrix      [][]float64    `json:"matrix"`       // 相似度矩阵
+	Type        SimilarityType `json:"type"`         // 计算类型
 }
 
 // NewSimilarityCalculator 创建相似度计算器
@@ -79,7 +79,7 @@ func (sc *SimilarityCalculator) CalculateCosineSimilarity(vector1, vector2 []flo
 
 	// 计算余弦相似度
 	similarity := dotProduct / (norm1 * norm2)
-	
+
 	// 确保结果在[-1, 1]范围内
 	if similarity > 1.0 {
 		similarity = 1.0
@@ -109,7 +109,7 @@ func (sc *SimilarityCalculator) CalculateEuclideanDistance(vector1, vector2 []fl
 	}
 
 	distance := math.Sqrt(sumSquares)
-	
+
 	return distance, nil
 }
 
@@ -200,9 +200,9 @@ func (sc *SimilarityCalculator) BatchCalculateSimilarity(queryVector []float32, 
 	}
 
 	sc.logger.Debug("Batch calculating similarities", logger.Fields{
-		"query_dimension":     len(queryVector),
-		"candidate_count":     len(candidateVectors),
-		"similarity_type":     string(simType),
+		"query_dimension": len(queryVector),
+		"candidate_count": len(candidateVectors),
+		"similarity_type": string(simType),
 	})
 
 	results := make([]*SimilarityResult, 0, len(candidateVectors))
@@ -370,7 +370,7 @@ func (sc *SimilarityCalculator) FindMostSimilarDocuments(queryVector []float32, 
 	// 提取向量和ID
 	vectors := make([][]float32, len(candidateDocuments))
 	ids := make([]string, len(candidateDocuments))
-	
+
 	for i, doc := range candidateDocuments {
 		vectors[i] = doc.Embedding
 		ids[i] = doc.ID
@@ -424,7 +424,7 @@ func (sc *SimilarityCalculator) GetSimilarityStatistics(results []*SimilarityRes
 	var max, min, sum float64
 	max = results[0].Similarity
 	min = results[0].Similarity
-	
+
 	for _, result := range results {
 		sum += result.Similarity
 		if result.Similarity > max {

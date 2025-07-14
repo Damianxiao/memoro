@@ -15,28 +15,28 @@ import (
 
 // SearchEngine 智能搜索引擎
 type SearchEngine struct {
-	chromaClient        *ChromaClient
-	embeddingService    *EmbeddingService
-	similarityCalc      *SimilarityCalculator
-	cacheManager        *VectorCacheManager
-	config              config.VectorDBConfig
-	logger              *logger.Logger
+	chromaClient     *ChromaClient
+	embeddingService *EmbeddingService
+	similarityCalc   *SimilarityCalculator
+	cacheManager     *VectorCacheManager
+	config           config.VectorDBConfig
+	logger           *logger.Logger
 }
 
 // SearchOptions 搜索选项
 type SearchOptions struct {
-	Query               string                 `json:"query"`                          // 查询文本
-	ContentTypes        []models.ContentType  `json:"content_types,omitempty"`       // 内容类型过滤
-	UserID              string                 `json:"user_id,omitempty"`             // 用户ID过滤
-	TopK                int                    `json:"top_k"`                         // 返回结果数量
-	MinSimilarity       float32                `json:"min_similarity"`                // 最小相似度阈值
-	IncludeContent      bool                   `json:"include_content"`               // 是否包含原文
-	SimilarityType      SimilarityType         `json:"similarity_type,omitempty"`     // 相似度计算类型
-	TimeRange           *TimeRange             `json:"time_range,omitempty"`          // 时间范围过滤
-	Tags                []string               `json:"tags,omitempty"`                // 标签过滤
-	ImportanceThreshold float64                `json:"importance_threshold,omitempty"` // 重要性阈值
-	EnableReranking     bool                   `json:"enable_reranking"`              // 启用重排序
-	MaxResults          int                    `json:"max_results"`                   // 最大结果数量限制
+	Query               string               `json:"query"`                          // 查询文本
+	ContentTypes        []models.ContentType `json:"content_types,omitempty"`        // 内容类型过滤
+	UserID              string               `json:"user_id,omitempty"`              // 用户ID过滤
+	TopK                int                  `json:"top_k"`                          // 返回结果数量
+	MinSimilarity       float32              `json:"min_similarity"`                 // 最小相似度阈值
+	IncludeContent      bool                 `json:"include_content"`                // 是否包含原文
+	SimilarityType      SimilarityType       `json:"similarity_type,omitempty"`      // 相似度计算类型
+	TimeRange           *TimeRange           `json:"time_range,omitempty"`           // 时间范围过滤
+	Tags                []string             `json:"tags,omitempty"`                 // 标签过滤
+	ImportanceThreshold float64              `json:"importance_threshold,omitempty"` // 重要性阈值
+	EnableReranking     bool                 `json:"enable_reranking"`               // 启用重排序
+	MaxResults          int                  `json:"max_results"`                    // 最大结果数量限制
 }
 
 // TimeRange 时间范围
@@ -47,27 +47,27 @@ type TimeRange struct {
 
 // SearchResponse 搜索响应
 type SearchResponse struct {
-	Results         []*SearchResultItem `json:"results"`          // 搜索结果
-	TotalResults    int                 `json:"total_results"`    // 总结果数
-	QueryTime       time.Duration       `json:"query_time"`       // 查询耗时
-	ProcessedQuery  string              `json:"processed_query"`  // 处理后的查询
-	SimilarityType  SimilarityType      `json:"similarity_type"`  // 使用的相似度类型
-	VectorDimension int                 `json:"vector_dimension"` // 向量维度
-	Metadata        map[string]interface{} `json:"metadata"`      // 元数据信息
+	Results         []*SearchResultItem    `json:"results"`          // 搜索结果
+	TotalResults    int                    `json:"total_results"`    // 总结果数
+	QueryTime       time.Duration          `json:"query_time"`       // 查询耗时
+	ProcessedQuery  string                 `json:"processed_query"`  // 处理后的查询
+	SimilarityType  SimilarityType         `json:"similarity_type"`  // 使用的相似度类型
+	VectorDimension int                    `json:"vector_dimension"` // 向量维度
+	Metadata        map[string]interface{} `json:"metadata"`         // 元数据信息
 }
 
 // SearchResultItem 搜索结果项
 type SearchResultItem struct {
-	DocumentID       string                 `json:"document_id"`       // 文档ID
-	Content          string                 `json:"content,omitempty"` // 文档内容
-	Similarity       float64                `json:"similarity"`        // 相似度分数
-	Distance         float32                `json:"distance"`          // 向量距离
-	Rank             int                    `json:"rank"`              // 排名
-	Metadata         map[string]interface{} `json:"metadata"`          // 文档元数据
-	RelevanceScore   float64                `json:"relevance_score"`   // 综合相关性分数
-	MatchedKeywords  []string               `json:"matched_keywords"`  // 匹配的关键词
-	ContentSummary   string                 `json:"content_summary"`   // 内容摘要
-	CreatedAt        time.Time              `json:"created_at"`        // 创建时间
+	DocumentID      string                 `json:"document_id"`       // 文档ID
+	Content         string                 `json:"content,omitempty"` // 文档内容
+	Similarity      float64                `json:"similarity"`        // 相似度分数
+	Distance        float32                `json:"distance"`          // 向量距离
+	Rank            int                    `json:"rank"`              // 排名
+	Metadata        map[string]interface{} `json:"metadata"`          // 文档元数据
+	RelevanceScore  float64                `json:"relevance_score"`   // 综合相关性分数
+	MatchedKeywords []string               `json:"matched_keywords"`  // 匹配的关键词
+	ContentSummary  string                 `json:"content_summary"`   // 内容摘要
+	CreatedAt       time.Time              `json:"created_at"`        // 创建时间
 }
 
 // NewSearchEngine 创建搜索引擎
@@ -128,11 +128,11 @@ func (se *SearchEngine) Search(ctx context.Context, options *SearchOptions) (*Se
 	startTime := time.Now()
 
 	se.logger.Info("Executing intelligent search", logger.Fields{
-		"query":           options.Query,
-		"top_k":           options.TopK,
-		"min_similarity":  options.MinSimilarity,
-		"content_types":   options.ContentTypes,
-		"user_id":         options.UserID,
+		"query":            options.Query,
+		"top_k":            options.TopK,
+		"min_similarity":   options.MinSimilarity,
+		"content_types":    options.ContentTypes,
+		"user_id":          options.UserID,
 		"enable_reranking": options.EnableReranking,
 	})
 
@@ -203,9 +203,9 @@ func (se *SearchEngine) Search(ctx context.Context, options *SearchOptions) (*Se
 		SimilarityType:  options.SimilarityType,
 		VectorDimension: len(queryVector),
 		Metadata: map[string]interface{}{
-			"original_results": len(vectorResults.Documents),
-			"after_filtering":  len(resultItems),
-			"final_count":      len(finalResults),
+			"original_results":  len(vectorResults.Documents),
+			"after_filtering":   len(resultItems),
+			"final_count":       len(finalResults),
 			"reranking_enabled": options.EnableReranking,
 		},
 	}
@@ -224,11 +224,11 @@ func (se *SearchEngine) Search(ctx context.Context, options *SearchOptions) (*Se
 func (se *SearchEngine) preprocessQuery(query string) string {
 	// 清理查询文本
 	processed := strings.TrimSpace(query)
-	
+
 	// 移除多余的空白字符
 	processed = strings.ReplaceAll(processed, "\n", " ")
 	processed = strings.ReplaceAll(processed, "\t", " ")
-	
+
 	// 移除重复空格
 	for strings.Contains(processed, "  ") {
 		processed = strings.ReplaceAll(processed, "  ", " ")
@@ -252,8 +252,8 @@ func (se *SearchEngine) generateQueryVector(ctx context.Context, query string, o
 	// 尝试从缓存获取
 	if cachedVector, found := se.cacheManager.GetQueryVector(query, options); found {
 		se.logger.Debug("Query vector cache hit", logger.Fields{
-			"query_length":   len(query),
-			"vector_length":  len(cachedVector),
+			"query_length":  len(query),
+			"vector_length": len(cachedVector),
 		})
 		return cachedVector, nil
 	}
@@ -395,7 +395,7 @@ func (se *SearchEngine) convertToSearchResults(ctx context.Context, vectorResult
 func (se *SearchEngine) extractMatchedKeywords(query string, content string, metadata map[string]interface{}) []string {
 	queryWords := strings.Fields(strings.ToLower(query))
 	contentLower := strings.ToLower(content)
-	
+
 	matched := make([]string, 0)
 	for _, word := range queryWords {
 		if len(word) > 2 && strings.Contains(contentLower, word) {
@@ -435,7 +435,7 @@ func (se *SearchEngine) extractMatchedKeywords(query string, content string, met
 // generateContentSummary 生成内容摘要
 func (se *SearchEngine) generateContentSummary(content string, query string) string {
 	maxLength := 200
-	
+
 	if len(content) <= maxLength {
 		return content
 	}
@@ -443,14 +443,14 @@ func (se *SearchEngine) generateContentSummary(content string, query string) str
 	// 尝试找到包含查询词的段落
 	queryWords := strings.Fields(strings.ToLower(query))
 	contentLower := strings.ToLower(content)
-	
+
 	bestStart := 0
 	maxMatches := 0
-	
+
 	// 滑动窗口寻找最相关的片段
 	windowSize := maxLength
 	for i := 0; i <= len(content)-windowSize; i += 50 {
-		windowText := contentLower[i:i+windowSize]
+		windowText := contentLower[i : i+windowSize]
 		matches := 0
 		for _, word := range queryWords {
 			if strings.Contains(windowText, word) {
@@ -468,9 +468,9 @@ func (se *SearchEngine) generateContentSummary(content string, query string) str
 	if end > len(content) {
 		end = len(content)
 	}
-	
+
 	summary := content[bestStart:end]
-	
+
 	// 确保不在单词中间截断
 	if bestStart > 0 {
 		if spaceIdx := strings.Index(summary, " "); spaceIdx > 0 {
@@ -478,7 +478,7 @@ func (se *SearchEngine) generateContentSummary(content string, query string) str
 		}
 		summary = "..." + summary
 	}
-	
+
 	if end < len(content) {
 		if spaceIdx := strings.LastIndex(summary, " "); spaceIdx > 0 {
 			summary = summary[:spaceIdx]
@@ -633,9 +633,9 @@ func (se *SearchEngine) BatchIndexDocuments(ctx context.Context, contentItems []
 	}
 
 	se.logger.Info("Batch indexing completed", logger.Fields{
-		"total_items":    len(contentItems),
-		"indexed_items":  len(vectorDocs),
-		"failed_items":   len(contentItems) - len(vectorDocs),
+		"total_items":   len(contentItems),
+		"indexed_items": len(vectorDocs),
+		"failed_items":  len(contentItems) - len(vectorDocs),
 	})
 
 	return nil

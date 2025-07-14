@@ -19,60 +19,60 @@ type Ranker struct {
 type RankingStrategy string
 
 const (
-	RankingStrategySimilarity   RankingStrategy = "similarity"    // 按相似度排序
-	RankingStrategyRelevance    RankingStrategy = "relevance"     // 按综合相关性排序
-	RankingStrategyTime         RankingStrategy = "time"          // 按时间排序
-	RankingStrategyImportance   RankingStrategy = "importance"    // 按重要性排序
-	RankingStrategyHybrid       RankingStrategy = "hybrid"        // 混合排序
+	RankingStrategySimilarity   RankingStrategy = "similarity"   // 按相似度排序
+	RankingStrategyRelevance    RankingStrategy = "relevance"    // 按综合相关性排序
+	RankingStrategyTime         RankingStrategy = "time"         // 按时间排序
+	RankingStrategyImportance   RankingStrategy = "importance"   // 按重要性排序
+	RankingStrategyHybrid       RankingStrategy = "hybrid"       // 混合排序
 	RankingStrategyPersonalized RankingStrategy = "personalized" // 个性化排序
 )
 
 // RankingOptions 排序选项
 type RankingOptions struct {
-	Strategy           RankingStrategy         `json:"strategy"`                     // 排序策略
-	Weights            *RankingWeights         `json:"weights,omitempty"`           // 权重配置
-	PersonalizationCtx *PersonalizationContext `json:"personalization,omitempty"`   // 个性化上下文
-	BoostFactors       *BoostFactors           `json:"boost_factors,omitempty"`     // 增强因子
-	TimeDecay          *TimeDecayConfig        `json:"time_decay,omitempty"`        // 时间衰减配置
-	DiversitySettings  *DiversitySettings      `json:"diversity,omitempty"`         // 多样性设置
+	Strategy           RankingStrategy         `json:"strategy"`                  // 排序策略
+	Weights            *RankingWeights         `json:"weights,omitempty"`         // 权重配置
+	PersonalizationCtx *PersonalizationContext `json:"personalization,omitempty"` // 个性化上下文
+	BoostFactors       *BoostFactors           `json:"boost_factors,omitempty"`   // 增强因子
+	TimeDecay          *TimeDecayConfig        `json:"time_decay,omitempty"`      // 时间衰减配置
+	DiversitySettings  *DiversitySettings      `json:"diversity,omitempty"`       // 多样性设置
 }
 
 // RankingWeights 排序权重
 type RankingWeights struct {
-	Similarity      float64 `json:"similarity"`       // 相似度权重
-	KeywordMatch    float64 `json:"keyword_match"`    // 关键词匹配权重
-	Importance      float64 `json:"importance"`       // 重要性权重
-	Freshness       float64 `json:"freshness"`        // 新鲜度权重
-	UserPreference  float64 `json:"user_preference"`  // 用户偏好权重
-	ContentType     float64 `json:"content_type"`     // 内容类型权重
-	TagRelevance    float64 `json:"tag_relevance"`    // 标签相关性权重
+	Similarity     float64 `json:"similarity"`      // 相似度权重
+	KeywordMatch   float64 `json:"keyword_match"`   // 关键词匹配权重
+	Importance     float64 `json:"importance"`      // 重要性权重
+	Freshness      float64 `json:"freshness"`       // 新鲜度权重
+	UserPreference float64 `json:"user_preference"` // 用户偏好权重
+	ContentType    float64 `json:"content_type"`    // 内容类型权重
+	TagRelevance   float64 `json:"tag_relevance"`   // 标签相关性权重
 }
 
 // PersonalizationContext 个性化上下文
 type PersonalizationContext struct {
-	UserID              string                 `json:"user_id"`                        // 用户ID
-	UserPreferences     map[string]float64     `json:"user_preferences"`               // 用户偏好
-	RecentInteractions  []string               `json:"recent_interactions"`            // 最近交互的内容ID
-	PreferredContentTypes []models.ContentType `json:"preferred_content_types"`        // 偏好的内容类型
-	PreferredTags       []string               `json:"preferred_tags"`                 // 偏好的标签
-	InteractionHistory  map[string]float64     `json:"interaction_history"`            // 交互历史权重
+	UserID                string               `json:"user_id"`                 // 用户ID
+	UserPreferences       map[string]float64   `json:"user_preferences"`        // 用户偏好
+	RecentInteractions    []string             `json:"recent_interactions"`     // 最近交互的内容ID
+	PreferredContentTypes []models.ContentType `json:"preferred_content_types"` // 偏好的内容类型
+	PreferredTags         []string             `json:"preferred_tags"`          // 偏好的标签
+	InteractionHistory    map[string]float64   `json:"interaction_history"`     // 交互历史权重
 }
 
 // BoostFactors 增强因子
 type BoostFactors struct {
-	HighImportanceBoost float64            `json:"high_importance_boost"`  // 高重要性增强
-	RecentContentBoost  float64            `json:"recent_content_boost"`   // 最新内容增强
-	ContentTypeBoosts   map[string]float64 `json:"content_type_boosts"`    // 内容类型增强
-	TagBoosts           map[string]float64 `json:"tag_boosts"`             // 标签增强
-	UserInteractionBoost float64           `json:"user_interaction_boost"` // 用户交互增强
+	HighImportanceBoost  float64            `json:"high_importance_boost"`  // 高重要性增强
+	RecentContentBoost   float64            `json:"recent_content_boost"`   // 最新内容增强
+	ContentTypeBoosts    map[string]float64 `json:"content_type_boosts"`    // 内容类型增强
+	TagBoosts            map[string]float64 `json:"tag_boosts"`             // 标签增强
+	UserInteractionBoost float64            `json:"user_interaction_boost"` // 用户交互增强
 }
 
 // TimeDecayConfig 时间衰减配置
 type TimeDecayConfig struct {
-	Enabled         bool    `json:"enabled"`          // 是否启用时间衰减
-	DecayRate       float64 `json:"decay_rate"`       // 衰减率 (0-1)
-	HalfLifeDays    float64 `json:"half_life_days"`   // 半衰期（天）
-	MinScore        float64 `json:"min_score"`        // 最小分数
+	Enabled         bool    `json:"enabled"`           // 是否启用时间衰减
+	DecayRate       float64 `json:"decay_rate"`        // 衰减率 (0-1)
+	HalfLifeDays    float64 `json:"half_life_days"`    // 半衰期（天）
+	MinScore        float64 `json:"min_score"`         // 最小分数
 	RecentBoostDays float64 `json:"recent_boost_days"` // 最近内容增强天数
 }
 
@@ -88,23 +88,23 @@ type DiversitySettings struct {
 
 // RankingResult 排序结果
 type RankingResult struct {
-	OriginalResults  []*SearchResultItem `json:"original_results"`   // 原始结果
-	RankedResults    []*SearchResultItem `json:"ranked_results"`     // 排序后结果
-	RankingStrategy  RankingStrategy     `json:"ranking_strategy"`   // 使用的排序策略
-	ScoreBreakdown   []ScoreBreakdown    `json:"score_breakdown"`    // 分数分解
-	DiversityMetrics *DiversityMetrics   `json:"diversity_metrics"`  // 多样性指标
+	OriginalResults  []*SearchResultItem `json:"original_results"`  // 原始结果
+	RankedResults    []*SearchResultItem `json:"ranked_results"`    // 排序后结果
+	RankingStrategy  RankingStrategy     `json:"ranking_strategy"`  // 使用的排序策略
+	ScoreBreakdown   []ScoreBreakdown    `json:"score_breakdown"`   // 分数分解
+	DiversityMetrics *DiversityMetrics   `json:"diversity_metrics"` // 多样性指标
 }
 
 // ScoreBreakdown 分数分解
 type ScoreBreakdown struct {
-	DocumentID       string  `json:"document_id"`       // 文档ID
-	FinalScore       float64 `json:"final_score"`       // 最终分数
-	SimilarityScore  float64 `json:"similarity_score"`  // 相似度分数
-	KeywordScore     float64 `json:"keyword_score"`     // 关键词分数
-	ImportanceScore  float64 `json:"importance_score"`  // 重要性分数
-	FreshnessScore   float64 `json:"freshness_score"`   // 新鲜度分数
+	DocumentID        string  `json:"document_id"`        // 文档ID
+	FinalScore        float64 `json:"final_score"`        // 最终分数
+	SimilarityScore   float64 `json:"similarity_score"`   // 相似度分数
+	KeywordScore      float64 `json:"keyword_score"`      // 关键词分数
+	ImportanceScore   float64 `json:"importance_score"`   // 重要性分数
+	FreshnessScore    float64 `json:"freshness_score"`    // 新鲜度分数
 	PersonalizedScore float64 `json:"personalized_score"` // 个性化分数
-	BoostScore       float64 `json:"boost_score"`       // 增强分数
+	BoostScore        float64 `json:"boost_score"`        // 增强分数
 }
 
 // DiversityMetrics 多样性指标
@@ -226,12 +226,12 @@ func (r *Ranker) rankByRelevance(results []*SearchResultItem, options *RankingOp
 	// 计算分数分解
 	for i, result := range results {
 		scoreBreakdown[i] = ScoreBreakdown{
-			DocumentID:        result.DocumentID,
-			FinalScore:        result.RelevanceScore,
-			SimilarityScore:   result.Similarity,
-			KeywordScore:      float64(len(result.MatchedKeywords)),
-			ImportanceScore:   r.extractImportanceScore(result.Metadata),
-			FreshnessScore:    r.calculateFreshnessScore(result.CreatedAt, options.TimeDecay),
+			DocumentID:      result.DocumentID,
+			FinalScore:      result.RelevanceScore,
+			SimilarityScore: result.Similarity,
+			KeywordScore:    float64(len(result.MatchedKeywords)),
+			ImportanceScore: r.extractImportanceScore(result.Metadata),
+			FreshnessScore:  r.calculateFreshnessScore(result.CreatedAt, options.TimeDecay),
 		}
 	}
 
@@ -251,9 +251,9 @@ func (r *Ranker) rankByTime(results []*SearchResultItem, options *RankingOptions
 	for i, result := range results {
 		timeScore := float64(result.CreatedAt.Unix()) / float64(time.Now().Unix())
 		scoreBreakdown[i] = ScoreBreakdown{
-			DocumentID:      result.DocumentID,
-			FinalScore:      timeScore,
-			FreshnessScore:  timeScore,
+			DocumentID:     result.DocumentID,
+			FinalScore:     timeScore,
+			FreshnessScore: timeScore,
 		}
 	}
 
@@ -365,7 +365,7 @@ func (r *Ranker) rankByPersonalized(results []*SearchResultItem, options *Rankin
 	for i, result := range results {
 		baseScore := result.RelevanceScore
 		personalizedScore := r.calculatePersonalizedScore(result, options.PersonalizationCtx)
-		
+
 		// 个性化权重更高
 		finalScore := baseScore*0.6 + personalizedScore*0.4
 
@@ -392,7 +392,7 @@ func (r *Ranker) calculateKeywordScore(matchedKeywords []string) float64 {
 	if len(matchedKeywords) == 0 {
 		return 0.0
 	}
-	
+
 	// 简单的关键词分数计算
 	return math.Min(float64(len(matchedKeywords))/5.0, 1.0)
 }
@@ -419,18 +419,18 @@ func (r *Ranker) calculateFreshnessScore(createdAt time.Time, timeDecay *TimeDec
 	if timeDecay.HalfLifeDays > 0 {
 		decayFactor := math.Pow(0.5, daysSinceCreation/timeDecay.HalfLifeDays)
 		score := decayFactor
-		
+
 		// 应用最小分数限制
 		if score < timeDecay.MinScore {
 			score = timeDecay.MinScore
 		}
-		
+
 		// 最近内容增强
 		if timeDecay.RecentBoostDays > 0 && daysSinceCreation <= timeDecay.RecentBoostDays {
 			boost := 1.0 + (timeDecay.RecentBoostDays-daysSinceCreation)/timeDecay.RecentBoostDays*0.5
 			score *= boost
 		}
-		
+
 		return math.Min(score, 1.0)
 	}
 
@@ -693,9 +693,9 @@ func (r *Ranker) calculateDiversityMetrics(results []*SearchResultItem) *Diversi
 	}
 
 	// 计算多样性分数（使用香农熵）
-	diversityScore := r.calculateShannonEntropy(contentTypeDistribution) * 0.4 +
-		r.calculateShannonEntropy(tagDistribution) * 0.4 +
-		r.calculateShannonEntropy(timeDistribution) * 0.2
+	diversityScore := r.calculateShannonEntropy(contentTypeDistribution)*0.4 +
+		r.calculateShannonEntropy(tagDistribution)*0.4 +
+		r.calculateShannonEntropy(timeDistribution)*0.2
 
 	return &DiversityMetrics{
 		ContentTypeDistribution: contentTypeDistribution,

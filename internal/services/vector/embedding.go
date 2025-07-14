@@ -23,10 +23,10 @@ type EmbeddingService struct {
 
 // EmbeddingRequest 向量化请求
 type EmbeddingRequest struct {
-	Text        string                 `json:"text"`                  // 要向量化的文本
-	ContentType models.ContentType     `json:"content_type"`          // 内容类型
-	MaxTokens   int                    `json:"max_tokens,omitempty"`  // 最大token数量
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`    // 额外元数据
+	Text        string                 `json:"text"`                 // 要向量化的文本
+	ContentType models.ContentType     `json:"content_type"`         // 内容类型
+	MaxTokens   int                    `json:"max_tokens,omitempty"` // 最大token数量
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`   // 额外元数据
 }
 
 // EmbeddingResponse LLM API的embedding响应
@@ -46,20 +46,20 @@ type EmbeddingResponse struct {
 
 // EmbeddingResult 向量化结果
 type EmbeddingResult struct {
-	Vector       []float32     `json:"vector"`         // 生成的向量
-	Dimension    int           `json:"dimension"`      // 向量维度
-	TokensUsed   int           `json:"tokens_used"`    // 使用的token数量
-	ProcessTime  time.Duration `json:"process_time"`   // 处理时间
-	Model        string        `json:"model"`          // 使用的模型
-	TextLength   int           `json:"text_length"`    // 原文长度
+	Vector      []float32     `json:"vector"`       // 生成的向量
+	Dimension   int           `json:"dimension"`    // 向量维度
+	TokensUsed  int           `json:"tokens_used"`  // 使用的token数量
+	ProcessTime time.Duration `json:"process_time"` // 处理时间
+	Model       string        `json:"model"`        // 使用的模型
+	TextLength  int           `json:"text_length"`  // 原文长度
 }
 
 // BatchEmbeddingRequest 批量向量化请求
 type BatchEmbeddingRequest struct {
-	Texts       []string               `json:"texts"`                 // 要向量化的文本列表
-	ContentType models.ContentType     `json:"content_type"`          // 内容类型
-	MaxTokens   int                    `json:"max_tokens,omitempty"`  // 最大token数量
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`    // 额外元数据
+	Texts       []string               `json:"texts"`                // 要向量化的文本列表
+	ContentType models.ContentType     `json:"content_type"`         // 内容类型
+	MaxTokens   int                    `json:"max_tokens,omitempty"` // 最大token数量
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`   // 额外元数据
 }
 
 // BatchEmbeddingResult 批量向量化结果
@@ -104,9 +104,9 @@ func NewEmbeddingService() (*EmbeddingService, error) {
 	}
 
 	embeddingLogger.Info("Embedding service initialized", logger.Fields{
-		"model":       cfg.LLM.Model,
-		"api_base":    cfg.LLM.APIBase,
-		"max_tokens":  cfg.LLM.MaxTokens,
+		"model":      cfg.LLM.Model,
+		"api_base":   cfg.LLM.APIBase,
+		"max_tokens": cfg.LLM.MaxTokens,
 	})
 
 	return service, nil
@@ -246,11 +246,11 @@ func (es *EmbeddingService) GenerateBatchEmbeddings(ctx context.Context, req *Ba
 func (es *EmbeddingService) preprocessText(text string, contentType models.ContentType) string {
 	// 移除多余的空白字符
 	processed := strings.TrimSpace(text)
-	
+
 	// 替换多个连续空格为单个空格
 	processed = strings.ReplaceAll(processed, "\n", " ")
 	processed = strings.ReplaceAll(processed, "\t", " ")
-	
+
 	// 移除重复空格
 	for strings.Contains(processed, "  ") {
 		processed = strings.ReplaceAll(processed, "  ", " ")
@@ -460,9 +460,9 @@ func (es *EmbeddingService) CreateContentVector(ctx context.Context, contentItem
 // Close 关闭embedding服务
 func (es *EmbeddingService) Close() error {
 	es.logger.Info("Closing embedding service")
-	
+
 	// HTTP客户端不需要显式关闭
-	
+
 	es.logger.Info("Embedding service closed")
 	return nil
 }

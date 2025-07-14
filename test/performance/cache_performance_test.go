@@ -1,16 +1,13 @@
 package vector
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"memoro/internal/config"
-	"memoro/internal/models"
 	"memoro/internal/services/vector"
 )
 
@@ -204,7 +201,7 @@ func TestCacheHitRatioImprovement(t *testing.T) {
 		"推荐系统算法",
 	}
 
-	options := &SearchOptions{TopK: 10, UserID: "test-user"}
+	options := &vector.SearchOptions{TopK: 10, UserID: "test-user"}
 
 	// 第一轮：所有查询都会未命中
 	firstRoundMisses := int64(0)

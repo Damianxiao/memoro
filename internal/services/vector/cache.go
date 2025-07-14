@@ -24,24 +24,24 @@ type CacheConfig struct {
 // DefaultCacheConfig 默认缓存配置
 func DefaultCacheConfig() *CacheConfig {
 	return &CacheConfig{
-		QueryVectorTTL:        60 * time.Minute,  // 1小时
-		QueryVectorMaxSize:    10000,             // 最多缓存10k个查询向量
-		RecommendationTTL:     30 * time.Minute,  // 30分钟
-		RecommendationMaxSize: 5000,              // 最多缓存5k个推荐结果
-		UserPreferenceTTL:     24 * time.Hour,    // 24小时
-		UserPreferenceMaxSize: 1000,              // 最多缓存1k个用户偏好
-		CleanupInterval:       10 * time.Minute,  // 10分钟清理一次
+		QueryVectorTTL:        60 * time.Minute, // 1小时
+		QueryVectorMaxSize:    10000,            // 最多缓存10k个查询向量
+		RecommendationTTL:     30 * time.Minute, // 30分钟
+		RecommendationMaxSize: 5000,             // 最多缓存5k个推荐结果
+		UserPreferenceTTL:     24 * time.Hour,   // 24小时
+		UserPreferenceMaxSize: 1000,             // 最多缓存1k个用户偏好
+		CleanupInterval:       10 * time.Minute, // 10分钟清理一次
 	}
 }
 
 // CachedQueryVector 缓存的查询向量
 type CachedQueryVector struct {
-	Vector    []float32              `json:"vector"`
-	QueryHash string                 `json:"query_hash"`
-	Options   map[string]interface{} `json:"options"`
-	CachedAt  time.Time              `json:"cached_at"`
-	AccessCount int64                `json:"access_count"`
-	LastAccess  time.Time            `json:"last_access"`
+	Vector      []float32              `json:"vector"`
+	QueryHash   string                 `json:"query_hash"`
+	Options     map[string]interface{} `json:"options"`
+	CachedAt    time.Time              `json:"cached_at"`
+	AccessCount int64                  `json:"access_count"`
+	LastAccess  time.Time              `json:"last_access"`
 }
 
 // CachedRecommendation 缓存的推荐结果
@@ -86,20 +86,21 @@ type VectorCacheManager struct {
 	// 清理控制
 	stopCleanup chan struct{}
 	cleanupWg   sync.WaitGroup
+	closeOnce   sync.Once
 }
 
 // CacheStats 缓存统计信息
 type CacheStats struct {
-	QueryVectorHits   int64 `json:"query_vector_hits"`
-	QueryVectorMisses int64 `json:"query_vector_misses"`
+	QueryVectorHits      int64 `json:"query_vector_hits"`
+	QueryVectorMisses    int64 `json:"query_vector_misses"`
 	QueryVectorEvictions int64 `json:"query_vector_evictions"`
 
-	RecommendationHits   int64 `json:"recommendation_hits"`
-	RecommendationMisses int64 `json:"recommendation_misses"`
+	RecommendationHits      int64 `json:"recommendation_hits"`
+	RecommendationMisses    int64 `json:"recommendation_misses"`
 	RecommendationEvictions int64 `json:"recommendation_evictions"`
 
-	UserPreferenceHits   int64 `json:"user_preference_hits"`
-	UserPreferenceMisses int64 `json:"user_preference_misses"`
+	UserPreferenceHits      int64 `json:"user_preference_hits"`
+	UserPreferenceMisses    int64 `json:"user_preference_misses"`
 	UserPreferenceEvictions int64 `json:"user_preference_evictions"`
 }
 
@@ -114,7 +115,21 @@ func NewVectorCacheManager(cfg *config.Config) *VectorCacheManager {
 		if cfg.VectorDB.CacheConfig.QueryVectorMaxSize > 0 {
 			cacheConfig.QueryVectorMaxSize = cfg.VectorDB.CacheConfig.QueryVectorMaxSize
 		}
-		// 其他配置项...
+		if cfg.VectorDB.CacheConfig.RecommendationTTL > 0 {
+			cacheConfig.RecommendationTTL = cfg.VectorDB.CacheConfig.RecommendationTTL
+		}
+		if cfg.VectorDB.CacheConfig.RecommendationMaxSize > 0 {
+			cacheConfig.RecommendationMaxSize = cfg.VectorDB.CacheConfig.RecommendationMaxSize
+		}
+		if cfg.VectorDB.CacheConfig.UserPreferenceTTL > 0 {
+			cacheConfig.UserPreferenceTTL = cfg.VectorDB.CacheConfig.UserPreferenceTTL
+		}
+		if cfg.VectorDB.CacheConfig.UserPreferenceMaxSize > 0 {
+			cacheConfig.UserPreferenceMaxSize = cfg.VectorDB.CacheConfig.UserPreferenceMaxSize
+		}
+		if cfg.VectorDB.CacheConfig.CleanupInterval > 0 {
+			cacheConfig.CleanupInterval = cfg.VectorDB.CacheConfig.CleanupInterval
+		}
 	}
 
 	manager := &VectorCacheManager{
@@ -144,7 +159,7 @@ func NewVectorCacheManager(cfg *config.Config) *VectorCacheManager {
 // GetQueryVector 获取查询向量
 func (cm *VectorCacheManager) GetQueryVector(query string, options *SearchOptions) ([]float32, bool) {
 	key := cm.generateQueryVectorKey(query, options)
-	
+
 	cm.queryVectorMutex.RLock()
 	cached, exists := cm.queryVectorCache[key]
 	cm.queryVectorMutex.RUnlock()
@@ -179,7 +194,7 @@ func (cm *VectorCacheManager) GetQueryVector(query string, options *SearchOption
 // SetQueryVector 设置查询向量
 func (cm *VectorCacheManager) SetQueryVector(query string, options *SearchOptions, vector []float32) {
 	key := cm.generateQueryVectorKey(query, options)
-	
+
 	cached := &CachedQueryVector{
 		Vector:      make([]float32, len(vector)),
 		QueryHash:   key,
@@ -208,7 +223,7 @@ func (cm *VectorCacheManager) SetQueryVector(query string, options *SearchOption
 // GetRecommendation 获取推荐结果
 func (cm *VectorCacheManager) GetRecommendation(request *RecommendationRequest) ([]*RecommendationItem, bool) {
 	key := cm.generateRecommendationKey(request)
-	
+
 	cm.recommendationMutex.RLock()
 	cached, exists := cm.recommendationCache[key]
 	cm.recommendationMutex.RUnlock()
@@ -233,9 +248,9 @@ func (cm *VectorCacheManager) GetRecommendation(request *RecommendationRequest) 
 
 	cm.incrementStat("recommendation_hits")
 	cm.logger.Debug("Recommendation cache hit", logger.Fields{
-		"request_hash":        cached.RequestHash,
-		"recommendations":     len(cached.Recommendations),
-		"access_count":        cached.AccessCount,
+		"request_hash":    cached.RequestHash,
+		"recommendations": len(cached.Recommendations),
+		"access_count":    cached.AccessCount,
 	})
 
 	return cached.Recommendations, true
@@ -244,7 +259,7 @@ func (cm *VectorCacheManager) GetRecommendation(request *RecommendationRequest) 
 // SetRecommendation 设置推荐结果
 func (cm *VectorCacheManager) SetRecommendation(request *RecommendationRequest, recommendations []*RecommendationItem) {
 	key := cm.generateRecommendationKey(request)
-	
+
 	cached := &CachedRecommendation{
 		Recommendations: make([]*RecommendationItem, len(recommendations)),
 		RequestHash:     key,
@@ -264,8 +279,8 @@ func (cm *VectorCacheManager) SetRecommendation(request *RecommendationRequest, 
 
 	cm.recommendationCache[key] = cached
 	cm.logger.Debug("Recommendation cached", logger.Fields{
-		"request_hash":       key,
-		"recommendations":    len(recommendations),
+		"request_hash":    key,
+		"recommendations": len(recommendations),
 	})
 }
 
@@ -278,10 +293,10 @@ func (cm *VectorCacheManager) generateQueryVectorKey(query string, options *Sear
 
 // generateRecommendationKey 生成推荐结果缓存键
 func (cm *VectorCacheManager) generateRecommendationKey(request *RecommendationRequest) string {
-	data := fmt.Sprintf("%s|%s|%s|%d|%f", 
-		request.Type, 
-		request.UserID, 
-		request.SourceDocumentID, 
+	data := fmt.Sprintf("%s|%s|%s|%d|%f",
+		request.Type,
+		request.UserID,
+		request.SourceDocumentID,
 		request.MaxRecommendations,
 		request.MinSimilarity)
 	hash := md5.Sum([]byte(data))
@@ -293,14 +308,14 @@ func (cm *VectorCacheManager) serializeOptions(options *SearchOptions) map[strin
 	if options == nil {
 		return nil
 	}
-	
+
 	return map[string]interface{}{
-		"content_types":        options.ContentTypes,
-		"user_id":             options.UserID,
-		"top_k":               options.TopK,
-		"min_similarity":      options.MinSimilarity,
-		"include_content":     options.IncludeContent,
-		"similarity_type":     options.SimilarityType,
+		"content_types":   options.ContentTypes,
+		"user_id":         options.UserID,
+		"top_k":           options.TopK,
+		"min_similarity":  options.MinSimilarity,
+		"include_content": options.IncludeContent,
+		"similarity_type": options.SimilarityType,
 	}
 }
 
@@ -316,14 +331,14 @@ func (cm *VectorCacheManager) evictQueryVector(key string) {
 func (cm *VectorCacheManager) evictLRUQueryVector() {
 	var oldestKey string
 	var oldestTime time.Time
-	
+
 	for key, cached := range cm.queryVectorCache {
 		if oldestKey == "" || cached.LastAccess.Before(oldestTime) {
 			oldestKey = key
 			oldestTime = cached.LastAccess
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(cm.queryVectorCache, oldestKey)
 		cm.incrementStat("query_vector_evictions")
@@ -342,14 +357,14 @@ func (cm *VectorCacheManager) evictRecommendation(key string) {
 func (cm *VectorCacheManager) evictLRURecommendation() {
 	var oldestKey string
 	var oldestTime time.Time
-	
+
 	for key, cached := range cm.recommendationCache {
 		if oldestKey == "" || cached.LastAccess.Before(oldestTime) {
 			oldestKey = key
 			oldestTime = cached.LastAccess
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(cm.recommendationCache, oldestKey)
 		cm.incrementStat("recommendation_evictions")
@@ -360,7 +375,7 @@ func (cm *VectorCacheManager) evictLRURecommendation() {
 func (cm *VectorCacheManager) incrementStat(statName string) {
 	cm.statsMutex.Lock()
 	defer cm.statsMutex.Unlock()
-	
+
 	switch statName {
 	case "query_vector_hits":
 		cm.stats.QueryVectorHits++
@@ -387,18 +402,18 @@ func (cm *VectorCacheManager) incrementStat(statName string) {
 func (cm *VectorCacheManager) GetStats() *CacheStats {
 	cm.statsMutex.RLock()
 	defer cm.statsMutex.RUnlock()
-	
+
 	// 返回统计信息的副本
 	return &CacheStats{
-		QueryVectorHits:          cm.stats.QueryVectorHits,
-		QueryVectorMisses:        cm.stats.QueryVectorMisses,
-		QueryVectorEvictions:     cm.stats.QueryVectorEvictions,
-		RecommendationHits:       cm.stats.RecommendationHits,
-		RecommendationMisses:     cm.stats.RecommendationMisses,
-		RecommendationEvictions:  cm.stats.RecommendationEvictions,
-		UserPreferenceHits:       cm.stats.UserPreferenceHits,
-		UserPreferenceMisses:     cm.stats.UserPreferenceMisses,
-		UserPreferenceEvictions:  cm.stats.UserPreferenceEvictions,
+		QueryVectorHits:         cm.stats.QueryVectorHits,
+		QueryVectorMisses:       cm.stats.QueryVectorMisses,
+		QueryVectorEvictions:    cm.stats.QueryVectorEvictions,
+		RecommendationHits:      cm.stats.RecommendationHits,
+		RecommendationMisses:    cm.stats.RecommendationMisses,
+		RecommendationEvictions: cm.stats.RecommendationEvictions,
+		UserPreferenceHits:      cm.stats.UserPreferenceHits,
+		UserPreferenceMisses:    cm.stats.UserPreferenceMisses,
+		UserPreferenceEvictions: cm.stats.UserPreferenceEvictions,
 	}
 }
 
@@ -420,31 +435,31 @@ func (cm *VectorCacheManager) GetCacheInfo() map[string]interface{} {
 
 	return map[string]interface{}{
 		"query_vector_cache": map[string]interface{}{
-			"size":          queryVectorSize,
-			"max_size":      cm.config.QueryVectorMaxSize,
-			"ttl":           cm.config.QueryVectorTTL,
-			"hits":          stats.QueryVectorHits,
-			"misses":        stats.QueryVectorMisses,
-			"evictions":     stats.QueryVectorEvictions,
-			"hit_ratio":     cm.calculateHitRatio(stats.QueryVectorHits, stats.QueryVectorMisses),
+			"size":      queryVectorSize,
+			"max_size":  cm.config.QueryVectorMaxSize,
+			"ttl":       cm.config.QueryVectorTTL,
+			"hits":      stats.QueryVectorHits,
+			"misses":    stats.QueryVectorMisses,
+			"evictions": stats.QueryVectorEvictions,
+			"hit_ratio": cm.calculateHitRatio(stats.QueryVectorHits, stats.QueryVectorMisses),
 		},
 		"recommendation_cache": map[string]interface{}{
-			"size":          recommendationSize,
-			"max_size":      cm.config.RecommendationMaxSize,
-			"ttl":           cm.config.RecommendationTTL,
-			"hits":          stats.RecommendationHits,
-			"misses":        stats.RecommendationMisses,
-			"evictions":     stats.RecommendationEvictions,
-			"hit_ratio":     cm.calculateHitRatio(stats.RecommendationHits, stats.RecommendationMisses),
+			"size":      recommendationSize,
+			"max_size":  cm.config.RecommendationMaxSize,
+			"ttl":       cm.config.RecommendationTTL,
+			"hits":      stats.RecommendationHits,
+			"misses":    stats.RecommendationMisses,
+			"evictions": stats.RecommendationEvictions,
+			"hit_ratio": cm.calculateHitRatio(stats.RecommendationHits, stats.RecommendationMisses),
 		},
 		"user_preference_cache": map[string]interface{}{
-			"size":          userPreferenceSize,
-			"max_size":      cm.config.UserPreferenceMaxSize,
-			"ttl":           cm.config.UserPreferenceTTL,
-			"hits":          stats.UserPreferenceHits,
-			"misses":        stats.UserPreferenceMisses,
-			"evictions":     stats.UserPreferenceEvictions,
-			"hit_ratio":     cm.calculateHitRatio(stats.UserPreferenceHits, stats.UserPreferenceMisses),
+			"size":      userPreferenceSize,
+			"max_size":  cm.config.UserPreferenceMaxSize,
+			"ttl":       cm.config.UserPreferenceTTL,
+			"hits":      stats.UserPreferenceHits,
+			"misses":    stats.UserPreferenceMisses,
+			"evictions": stats.UserPreferenceEvictions,
+			"hit_ratio": cm.calculateHitRatio(stats.UserPreferenceHits, stats.UserPreferenceMisses),
 		},
 	}
 }
@@ -516,8 +531,8 @@ func (cm *VectorCacheManager) cleanupExpiredEntries() {
 
 	if cleanedQuery > 0 || cleanedRec > 0 || cleanedUser > 0 {
 		cm.logger.Debug("Cache cleanup completed", logger.Fields{
-			"cleaned_query_vectors":   cleanedQuery,
-			"cleaned_recommendations": cleanedRec,
+			"cleaned_query_vectors":    cleanedQuery,
+			"cleaned_recommendations":  cleanedRec,
 			"cleaned_user_preferences": cleanedUser,
 		})
 	}
@@ -525,25 +540,28 @@ func (cm *VectorCacheManager) cleanupExpiredEntries() {
 
 // Close 关闭缓存管理器
 func (cm *VectorCacheManager) Close() error {
-	cm.logger.Info("Shutting down vector cache manager")
-	
-	// 停止清理协程
-	close(cm.stopCleanup)
-	cm.cleanupWg.Wait()
-	
-	// 清理所有缓存
-	cm.queryVectorMutex.Lock()
-	cm.queryVectorCache = make(map[string]*CachedQueryVector)
-	cm.queryVectorMutex.Unlock()
+	cm.closeOnce.Do(func() {
+		cm.logger.Info("Shutting down vector cache manager")
 
-	cm.recommendationMutex.Lock()
-	cm.recommendationCache = make(map[string]*CachedRecommendation)
-	cm.recommendationMutex.Unlock()
+		// 停止清理协程
+		close(cm.stopCleanup)
+		cm.cleanupWg.Wait()
 
-	cm.userPreferenceMutex.Lock()
-	cm.userPreferenceCache = make(map[string]*CachedUserPreference)
-	cm.userPreferenceMutex.Unlock()
+		// 清理所有缓存
+		cm.queryVectorMutex.Lock()
+		cm.queryVectorCache = make(map[string]*CachedQueryVector)
+		cm.queryVectorMutex.Unlock()
 
-	cm.logger.Info("Vector cache manager shut down completed")
+		cm.recommendationMutex.Lock()
+		cm.recommendationCache = make(map[string]*CachedRecommendation)
+		cm.recommendationMutex.Unlock()
+
+		cm.userPreferenceMutex.Lock()
+		cm.userPreferenceCache = make(map[string]*CachedUserPreference)
+		cm.userPreferenceMutex.Unlock()
+
+		cm.logger.Info("Vector cache manager shut down completed")
+	})
+
 	return nil
 }

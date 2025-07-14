@@ -15,84 +15,84 @@ import (
 
 // Recommender 推荐系统
 type Recommender struct {
-	searchEngine       *SearchEngine
-	similarityCalc     *SimilarityCalculator
-	ranker             *Ranker
-	logger             *logger.Logger
+	searchEngine   *SearchEngine
+	similarityCalc *SimilarityCalculator
+	ranker         *Ranker
+	logger         *logger.Logger
 }
 
 // RecommendationType 推荐类型
 type RecommendationType string
 
 const (
-	RecommendationTypeSimilar      RecommendationType = "similar"       // 相似内容推荐
-	RecommendationTypeRelated      RecommendationType = "related"       // 相关内容推荐
-	RecommendationTypePersonalized RecommendationType = "personalized"  // 个性化推荐
-	RecommendationTypeTrending     RecommendationType = "trending"      // 热门推荐
+	RecommendationTypeSimilar       RecommendationType = "similar"       // 相似内容推荐
+	RecommendationTypeRelated       RecommendationType = "related"       // 相关内容推荐
+	RecommendationTypePersonalized  RecommendationType = "personalized"  // 个性化推荐
+	RecommendationTypeTrending      RecommendationType = "trending"      // 热门推荐
 	RecommendationTypeCollaborative RecommendationType = "collaborative" // 协同过滤推荐
-	RecommendationTypeHybrid       RecommendationType = "hybrid"        // 混合推荐
+	RecommendationTypeHybrid        RecommendationType = "hybrid"        // 混合推荐
 )
 
 // RecommendationRequest 推荐请求
 type RecommendationRequest struct {
-	Type                RecommendationType    `json:"type"`                          // 推荐类型
-	UserID              string                `json:"user_id"`                       // 用户ID
-	SourceDocumentID    string                `json:"source_document_id,omitempty"` // 源文档ID
-	SourceQuery         string                `json:"source_query,omitempty"`       // 源查询
-	MaxRecommendations  int                   `json:"max_recommendations"`          // 最大推荐数量
-	ContentTypes        []models.ContentType  `json:"content_types,omitempty"`      // 内容类型过滤
-	ExcludeDocuments    []string              `json:"exclude_documents,omitempty"`  // 排除的文档ID
-	TimeRange           *TimeRange            `json:"time_range,omitempty"`         // 时间范围
-	MinSimilarity       float32               `json:"min_similarity"`               // 最小相似度
-	DiversityEnabled    bool                  `json:"diversity_enabled"`            // 启用多样性
-	PersonalizationCtx  *PersonalizationContext `json:"personalization,omitempty"`  // 个性化上下文
-	IncludeExplanations bool                  `json:"include_explanations"`         // 包含推荐解释
+	Type                RecommendationType      `json:"type"`                         // 推荐类型
+	UserID              string                  `json:"user_id"`                      // 用户ID
+	SourceDocumentID    string                  `json:"source_document_id,omitempty"` // 源文档ID
+	SourceQuery         string                  `json:"source_query,omitempty"`       // 源查询
+	MaxRecommendations  int                     `json:"max_recommendations"`          // 最大推荐数量
+	ContentTypes        []models.ContentType    `json:"content_types,omitempty"`      // 内容类型过滤
+	ExcludeDocuments    []string                `json:"exclude_documents,omitempty"`  // 排除的文档ID
+	TimeRange           *TimeRange              `json:"time_range,omitempty"`         // 时间范围
+	MinSimilarity       float32                 `json:"min_similarity"`               // 最小相似度
+	DiversityEnabled    bool                    `json:"diversity_enabled"`            // 启用多样性
+	PersonalizationCtx  *PersonalizationContext `json:"personalization,omitempty"`    // 个性化上下文
+	IncludeExplanations bool                    `json:"include_explanations"`         // 包含推荐解释
 }
 
 // RecommendationResponse 推荐响应
 type RecommendationResponse struct {
-	Recommendations []*RecommendationItem `json:"recommendations"`    // 推荐结果
-	TotalFound      int                   `json:"total_found"`        // 总发现数量
-	ProcessTime     time.Duration         `json:"process_time"`       // 处理时间
-	RecommendationType RecommendationType `json:"recommendation_type"` // 推荐类型
-	Metadata        map[string]interface{} `json:"metadata"`          // 元数据
+	Recommendations    []*RecommendationItem  `json:"recommendations"`     // 推荐结果
+	TotalFound         int                    `json:"total_found"`         // 总发现数量
+	ProcessTime        time.Duration          `json:"process_time"`        // 处理时间
+	RecommendationType RecommendationType     `json:"recommendation_type"` // 推荐类型
+	Metadata           map[string]interface{} `json:"metadata"`            // 元数据
 }
 
 // RecommendationItem 推荐项
 type RecommendationItem struct {
-	DocumentID        string                 `json:"document_id"`        // 文档ID
-	Content           string                 `json:"content,omitempty"`  // 文档内容
-	Similarity        float64                `json:"similarity"`         // 相似度分数
-	Confidence        float64                `json:"confidence"`         // 推荐置信度
-	Rank              int                    `json:"rank"`               // 排名
-	Metadata          map[string]interface{} `json:"metadata"`           // 文档元数据
-	RecommendationScore float64              `json:"recommendation_score"` // 推荐分数
-	Explanation       *RecommendationExplanation `json:"explanation,omitempty"` // 推荐解释
-	RelatedKeywords   []string               `json:"related_keywords"`   // 相关关键词
-	CreatedAt         time.Time              `json:"created_at"`         // 创建时间
+	DocumentID          string                     `json:"document_id"`           // 文档ID
+	Content             string                     `json:"content,omitempty"`     // 文档内容
+	Similarity          float64                    `json:"similarity"`            // 相似度分数
+	Confidence          float64                    `json:"confidence"`            // 推荐置信度
+	Rank                int                        `json:"rank"`                  // 排名
+	Metadata            map[string]interface{}     `json:"metadata"`              // 文档元数据
+	RecommendationScore float64                    `json:"recommendation_score"`  // 推荐分数
+	Explanation         *RecommendationExplanation `json:"explanation,omitempty"` // 推荐解释
+	RelatedKeywords     []string                   `json:"related_keywords"`      // 相关关键词
+	CreatedAt           time.Time                  `json:"created_at"`            // 创建时间
 }
 
 // RecommendationExplanation 推荐解释
 type RecommendationExplanation struct {
-	Reason          string            `json:"reason"`                     // 推荐原因
-	SimilarityScore float64           `json:"similarity_score"`           // 相似度分数
-	FactorBreakdown map[string]float64 `json:"factor_breakdown"`          // 因子分解
-	MatchedFeatures []string          `json:"matched_features"`           // 匹配的特征
-	UserPreferences []string          `json:"user_preferences,omitempty"` // 用户偏好匹配
+	Reason          string             `json:"reason"`                     // 推荐原因
+	SimilarityScore float64            `json:"similarity_score"`           // 相似度分数
+	FactorBreakdown map[string]float64 `json:"factor_breakdown"`           // 因子分解
+	MatchedFeatures []string           `json:"matched_features"`           // 匹配的特征
+	UserPreferences []string           `json:"user_preferences,omitempty"` // 用户偏好匹配
 }
 
 // CollaborativeFilteringData 协同过滤数据
 type CollaborativeFilteringData struct {
-	UserInteractions   map[string][]string    `json:"user_interactions"`   // 用户交互数据
-	DocumentSimilarity map[string][]string    `json:"document_similarity"`  // 文档相似性
-	UserSimilarity     map[string]float64     `json:"user_similarity"`      // 用户相似性
+	UserInteractions   map[string][]string `json:"user_interactions"`   // 用户交互数据
+	DocumentSimilarity map[string][]string `json:"document_similarity"` // 文档相似性
+	UserSimilarity     map[string]float64  `json:"user_similarity"`     // 用户相似性
 }
 
 // TrendingAnalysis 热门分析
 type TrendingAnalysis struct {
-	DocumentScores  map[string]float64 `json:"document_scores"`  // 文档热门分数
-	TimeWindow      time.Duration      `json:"time_window"`      // 时间窗口
-	InteractionCount map[string]int    `json:"interaction_count"` // 交互次数
+	DocumentScores   map[string]float64 `json:"document_scores"`   // 文档热门分数
+	TimeWindow       time.Duration      `json:"time_window"`       // 时间窗口
+	InteractionCount map[string]int     `json:"interaction_count"` // 交互次数
 }
 
 // NewRecommender 创建推荐系统
@@ -338,7 +338,7 @@ func (r *Recommender) getRelatedRecommendations(ctx context.Context, req *Recomm
 		QueryVector:   queryVector,
 		TopK:          req.MaxRecommendations * 3, // 获取更多结果
 		IncludeText:   true,
-		MinSimilarity: req.MinSimilarity * 0.7,    // 降低阈值以获取更多相关内容
+		MinSimilarity: req.MinSimilarity * 0.7, // 降低阈值以获取更多相关内容
 		Filter:        r.buildSearchFilter(req),
 	}
 
@@ -357,7 +357,7 @@ func (r *Recommender) getRelatedRecommendations(ctx context.Context, req *Recomm
 		// 计算相关性分数（结合向量相似度和关键词匹配）
 		vectorSimilarity, _ := r.similarityCalc.CalculateCosineSimilarity(queryVector, doc.Embedding)
 		keywordSimilarity := r.calculateKeywordSimilarity(sourceKeywords, doc)
-		
+
 		// 综合相关性分数
 		relatednessScore := vectorSimilarity*0.7 + keywordSimilarity*0.3
 
@@ -436,16 +436,16 @@ func (r *Recommender) getPersonalizedRecommendations(ctx context.Context, req *R
 	// Note: We use searchEngine.Search which will generate its own query vector from the source query
 	// The manually generated queryVector from above is kept for potential future use in advanced personalization
 	_ = queryVector // Acknowledge that we're not using it in this simplified version
-	
+
 	searchOptions := &SearchOptions{
-		TopK:                req.MaxRecommendations * 2,
-		MinSimilarity:       req.MinSimilarity * 0.8,
-		ContentTypes:        req.ContentTypes,
-		UserID:              req.UserID,
-		IncludeContent:      true,
-		EnableReranking:     true,
-		SimilarityType:      SimilarityTypeCosine,
-		MaxResults:          req.MaxRecommendations * 3,
+		TopK:            req.MaxRecommendations * 2,
+		MinSimilarity:   req.MinSimilarity * 0.8,
+		ContentTypes:    req.ContentTypes,
+		UserID:          req.UserID,
+		IncludeContent:  true,
+		EnableReranking: true,
+		SimilarityType:  SimilarityTypeCosine,
+		MaxResults:      req.MaxRecommendations * 3,
 	}
 
 	searchResponse, err := r.searchEngine.Search(ctx, searchOptions)
@@ -457,7 +457,7 @@ func (r *Recommender) getPersonalizedRecommendations(ctx context.Context, req *R
 	for _, searchItem := range searchResponse.Results {
 		// 计算个性化分数
 		personalizedScore := r.calculatePersonalizedScore(searchItem, req.PersonalizationCtx)
-		
+
 		recItem := &RecommendationItem{
 			DocumentID:          searchItem.DocumentID,
 			Content:             searchItem.Content,
@@ -985,7 +985,7 @@ func (r *Recommender) analyzeTrending(documents []*VectorDocument, timeRange *Ti
 	for _, doc := range documents {
 		// 简单的热门分数计算
 		// 在实际应用中，这里会考虑更多因素，如点击率、分享数、评论数等
-		
+
 		// 基于创建时间的新鲜度分数
 		age := timeRange.EndTime.Sub(doc.CreatedAt)
 		freshnessScore := 1.0 - (age.Hours() / timeWindow.Hours())
@@ -1017,26 +1017,26 @@ func (r *Recommender) analyzeTrending(documents []*VectorDocument, timeRange *Ti
 
 func (r *Recommender) extractTrendingKeywords(doc *VectorDocument) []string {
 	keywords := r.extractKeywordsFromMetadata(doc.Metadata)
-	
+
 	// 为热门内容添加特殊标记
 	keywords = append(keywords, "trending", "popular")
-	
+
 	return keywords
 }
 
 func (r *Recommender) calculateRecencyBonus(createdAt time.Time) float64 {
 	hoursAgo := time.Since(createdAt).Hours()
-	
+
 	// 24小时内的内容获得最高加分
 	if hoursAgo <= 24 {
 		return 1.0
 	}
-	
+
 	// 一周内的内容获得递减加分
 	if hoursAgo <= 168 { // 7 * 24
 		return 1.0 - ((hoursAgo - 24) / 144) // 144 = 168 - 24
 	}
-	
+
 	return 0.0
 }
 
@@ -1067,16 +1067,16 @@ func (r *Recommender) addHybridExplanation(explanation *RecommendationExplanatio
 			FactorBreakdown: make(map[string]float64),
 		}
 	}
-	
+
 	explanation.Reason = fmt.Sprintf("Hybrid recommendation (strategy: %s, weight: %.1f)", strategy, weight)
 	explanation.FactorBreakdown[strategy+"_weight"] = weight
-	
+
 	return explanation
 }
 
 func (r *Recommender) mergeAndDeduplicateRecommendations(recommendations []*RecommendationItem) []*RecommendationItem {
 	uniqueMap := make(map[string]*RecommendationItem)
-	
+
 	for _, rec := range recommendations {
 		if existing, exists := uniqueMap[rec.DocumentID]; exists {
 			// 合并分数（取最高分）
@@ -1087,12 +1087,12 @@ func (r *Recommender) mergeAndDeduplicateRecommendations(recommendations []*Reco
 			uniqueMap[rec.DocumentID] = rec
 		}
 	}
-	
+
 	result := make([]*RecommendationItem, 0, len(uniqueMap))
 	for _, rec := range uniqueMap {
 		result = append(result, rec)
 	}
-	
+
 	return result
 }
 
@@ -1100,19 +1100,19 @@ func (r *Recommender) applyFiltering(recommendations []*RecommendationItem, req 
 	if len(req.ExcludeDocuments) == 0 {
 		return recommendations
 	}
-	
+
 	excludeMap := make(map[string]bool)
 	for _, docID := range req.ExcludeDocuments {
 		excludeMap[docID] = true
 	}
-	
+
 	filtered := make([]*RecommendationItem, 0)
 	for _, rec := range recommendations {
 		if !excludeMap[rec.DocumentID] {
 			filtered = append(filtered, rec)
 		}
 	}
-	
+
 	return filtered
 }
 
@@ -1121,10 +1121,10 @@ func (r *Recommender) applyDiversity(recommendations []*RecommendationItem, req 
 	if len(recommendations) <= 3 {
 		return recommendations
 	}
-	
+
 	diverse := make([]*RecommendationItem, 0)
 	contentTypeCounts := make(map[string]int)
-	
+
 	for _, rec := range recommendations {
 		contentType := "unknown"
 		if ct, exists := rec.Metadata["content_type"]; exists {
@@ -1132,18 +1132,18 @@ func (r *Recommender) applyDiversity(recommendations []*RecommendationItem, req 
 				contentType = ctStr
 			}
 		}
-		
+
 		// 限制每种内容类型的数量
 		if contentTypeCounts[contentType] < 2 {
 			diverse = append(diverse, rec)
 			contentTypeCounts[contentType]++
 		}
-		
+
 		if len(diverse) >= req.MaxRecommendations {
 			break
 		}
 	}
-	
+
 	return diverse
 }
 
