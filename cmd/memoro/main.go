@@ -8,14 +8,38 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gin-gonic/gin"
 	"memoro/internal/config"
 	"memoro/internal/handlers"
 	"memoro/internal/logger"
+	"memoro/internal/services/vector"
+
+	"github.com/gin-gonic/gin"
 )
+
+// SearchEngineAdapter 适配器，将vector.SearchEngine适配为handlers.SearchEngineInterface
+type SearchEngineAdapter struct {
+	engine *vector.SearchEngine
+}
+
+func (sea *SearchEngineAdapter) Search(ctx context.Context, options *vector.SearchOptions) ([]*vector.SearchResultItem, error) {
+	response, err := sea.engine.Search(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return response.Results, nil
+}
+
+func (sea *SearchEngineAdapter) GetSearchStats(ctx context.Context) (map[string]interface{}, error) {
+	return sea.engine.GetSearchStats(ctx)
+}
+
+func (sea *SearchEngineAdapter) Close() error {
+	return sea.engine.Close()
+}
 
 func main() {
 	// 解析命令行参数
+
 	configPath := flag.String("config", "./config/app.yaml", "Configuration file path")
 	flag.Parse()
 
@@ -54,7 +78,13 @@ func main() {
 	r.Use(gin.Recovery())
 
 	// 注册路由
-	setupRoutes(r)
+	err = setupRoutes(r, cfg)
+	if err != nil {
+		mainLogger.Error("Failed to setup routes", logger.Fields{
+			"error": err.Error(),
+		})
+		os.Exit(1)
+	}
 
 	// 创建HTTP服务器
 	serverAddr := config.GetServerAddress()
@@ -100,24 +130,63 @@ func main() {
 		})
 		os.Exit(1)
 	}
-
+	
 	mainLogger.Info("Server exited gracefully")
 }
 
 // setupRoutes 设置路由
-func setupRoutes(r *gin.Engine) {
+func setupRoutes(r *gin.Engine, cfg *config.Config) error {
+	// 初始化服务（仅用于路由注册，如果服务不可用会graceful降级）
+	var searchEngine handlers.SearchEngineInterface
+	var recommender handlers.RecommenderInterface
+
+	// 尝试初始化向量搜索引擎
+	if cfg.VectorDB.Host != "" && cfg.VectorDB.Port > 0 {
+		if engine, err := vector.NewSearchEngine(); err != nil {
+			// 搜索引擎不可用，记录警告但继续启动
+			logger := logger.NewLogger("main")
+			logger.Warn("Search engine initialization failed, search API will be unavailable", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			searchEngine = &SearchEngineAdapter{engine: engine}
+
+			// 尝试初始化推荐器
+			if rec, err := vector.NewRecommender(); err != nil {
+				logger := logger.NewLogger("main")
+				logger.Warn("Recommender initialization failed, recommendation API will be unavailable", map[string]interface{}{
+					"error": err.Error(),
+				})
+			} else {
+				recommender = rec
+			}
+		}
+	}
+
+	// 创建API处理器
+	searchHandler := handlers.NewSearchHandler(searchEngine)
+	recommendationHandler := handlers.NewRecommendationHandler(recommender)
+
 	// API v1 路由组
 	v1 := r.Group("/api/v1")
 	{
 		// 健康检查
 		v1.GET("/health", handlers.HealthHandler)
 
+		// 搜索API
+		v1.POST("/search", searchHandler.Search)
+		v1.GET("/search/stats", searchHandler.GetStats)
+
+		// 推荐API
+		v1.POST("/recommendations", recommendationHandler.GetRecommendations)
+
 		// 预留其他API端点
 		// TODO: 添加内容管理API
-		// TODO: 添加搜索API
 		// TODO: 添加WebHook API
 	}
 
 	// 直接健康检查路由 (向后兼容)
 	r.GET("/health", handlers.HealthHandler)
+
+	return nil
 }
