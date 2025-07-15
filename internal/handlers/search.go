@@ -20,7 +20,7 @@ type SearchHandler struct {
 
 // SearchEngineInterface 搜索引擎接口
 type SearchEngineInterface interface {
-	Search(ctx context.Context, options *vector.SearchOptions) ([]*vector.SearchResultItem, error)
+	Search(ctx context.Context, options *vector.SearchOptions) (*vector.SearchResponse, error)
 	GetSearchStats(ctx context.Context) (map[string]interface{}, error)
 	Close() error
 }
@@ -98,7 +98,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 		return
 	}
 	
-	results, err := h.searchEngine.Search(c.Request.Context(), searchOptions)
+	response, err := h.searchEngine.Search(c.Request.Context(), searchOptions)
 	if err != nil {
 		h.logger.Error("Search failed", logger.Fields{
 			"error":   err.Error(),
@@ -117,21 +117,21 @@ func (h *SearchHandler) Search(c *gin.Context) {
 	// 记录搜索日志
 	h.logger.Info("Search completed", logger.Fields{
 		"query":        req.Query,
-		"results":      len(results),
+		"results":      len(response.Results),
 		"process_time": processTime,
 		"user_id":      req.UserID,
 	})
 
 	// 返回搜索结果
-	response := SearchResponse{
+	apiResponse := SearchResponse{
 		Success:     true,
-		Results:     results,
-		Total:       len(results),
+		Results:     response.Results,
+		Total:       len(response.Results),
 		ProcessTime: processTime,
 		Timestamp:   time.Now(),
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, apiResponse)
 }
 
 // GetStats 获取搜索统计信息

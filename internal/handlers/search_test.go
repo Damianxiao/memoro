@@ -125,11 +125,11 @@ type TestSearchResponse struct {
 
 // MockSearchEngine 模拟搜索引擎（用于测试）
 type MockSearchEngine struct {
-	SearchFunc    func(ctx context.Context, options *vector.SearchOptions) ([]*vector.SearchResultItem, error)
+	SearchFunc    func(ctx context.Context, options *vector.SearchOptions) (*vector.SearchResponse, error)
 	GetStatsFunc  func(ctx context.Context) (map[string]interface{}, error)
 }
 
-func (m *MockSearchEngine) Search(ctx context.Context, options *vector.SearchOptions) ([]*vector.SearchResultItem, error) {
+func (m *MockSearchEngine) Search(ctx context.Context, options *vector.SearchOptions) (*vector.SearchResponse, error) {
 	if m.SearchFunc != nil {
 		return m.SearchFunc(ctx, options)
 	}
@@ -158,23 +158,27 @@ func TestSearchHandler_WithMockEngine(t *testing.T) {
 	t.Run("成功搜索请求", func(t *testing.T) {
 		// 创建Mock搜索引擎
 		mockEngine := &MockSearchEngine{
-			SearchFunc: func(ctx context.Context, options *vector.SearchOptions) ([]*vector.SearchResultItem, error) {
+			SearchFunc: func(ctx context.Context, options *vector.SearchOptions) (*vector.SearchResponse, error) {
 				// 返回模拟搜索结果
-				return []*vector.SearchResultItem{
-					{
-						DocumentID:     "doc-1",
-						Content:        "人工智能技术在医疗领域的应用",
-						Similarity:     0.95,
-						Rank:           1,
-						RelevanceScore: 0.95,
+				return &vector.SearchResponse{
+					Results: []*vector.SearchResultItem{
+						{
+							DocumentID:     "doc-1",
+							Content:        "人工智能技术在医疗领域的应用",
+							Similarity:     0.95,
+							Rank:           1,
+							RelevanceScore: 0.95,
+						},
+						{
+							DocumentID:     "doc-2", 
+							Content:        "机器学习算法的最新发展",
+							Similarity:     0.88,
+							Rank:           2,
+							RelevanceScore: 0.88,
+						},
 					},
-					{
-						DocumentID:     "doc-2", 
-						Content:        "机器学习算法的最新发展",
-						Similarity:     0.88,
-						Rank:           2,
-						RelevanceScore: 0.88,
-					},
+					TotalResults: 2,
+					QueryTime:    50 * time.Millisecond,
 				}, nil
 			},
 		}

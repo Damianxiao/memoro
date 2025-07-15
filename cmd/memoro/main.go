@@ -16,27 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SearchEngineAdapter 适配器，将vector.SearchEngine适配为handlers.SearchEngineInterface
-type SearchEngineAdapter struct {
-	engine *vector.SearchEngine
-}
-
-func (sea *SearchEngineAdapter) Search(ctx context.Context, options *vector.SearchOptions) ([]*vector.SearchResultItem, error) {
-	response, err := sea.engine.Search(ctx, options)
-	if err != nil {
-		return nil, err
-	}
-	return response.Results, nil
-}
-
-func (sea *SearchEngineAdapter) GetSearchStats(ctx context.Context) (map[string]interface{}, error) {
-	return sea.engine.GetSearchStats(ctx)
-}
-
-func (sea *SearchEngineAdapter) Close() error {
-	return sea.engine.Close()
-}
-
 func main() {
 	// 解析命令行参数
 
@@ -149,7 +128,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) error {
 				"error": err.Error(),
 			})
 		} else {
-			searchEngine = &SearchEngineAdapter{engine: engine}
+			searchEngine = engine
 
 			// 尝试初始化推荐器
 			if rec, err := vector.NewRecommender(); err != nil {
