@@ -290,11 +290,12 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 	startTime := time.Now()
 
 	cc.logger.Debug("Executing vector similarity search", logger.Fields{
-		"query_text":     query.QueryText,
-		"has_vector":     len(query.QueryVector) > 0,
-		"top_k":          query.TopK,
-		"min_similarity": query.MinSimilarity,
-		"has_filter":     len(query.Filter) > 0,
+		"query_text":      query.QueryText,
+		"has_vector":      len(query.QueryVector) > 0,
+		"vector_length":   len(query.QueryVector),
+		"top_k":           query.TopK,
+		"min_similarity":  query.MinSimilarity,
+		"has_filter":      len(query.Filter) > 0,
 	})
 
 	var queryEmbedding *types.Embedding
@@ -322,15 +323,9 @@ func (cc *ChromaClient) Search(ctx context.Context, query *SearchQuery) (*Search
 			types.WithNResults(int32(query.TopK)),
 			types.WithInclude(types.IDocuments, types.IEmbeddings, types.IMetadatas, types.IDistances),
 		)
-	} else if query.QueryText != "" {
-		// 文本查询
-		queryOptions = append(queryOptions,
-			types.WithQueryText(query.QueryText),
-			types.WithNResults(int32(query.TopK)),
-			types.WithInclude(types.IDocuments, types.IEmbeddings, types.IMetadatas, types.IDistances),
-		)
 	} else {
-		return nil, errors.ErrValidationFailed("query", "either query_vector or query_text must be provided")
+		// 如果没有向量，返回错误，因为Chroma v0.4.24不支持纯文本搜索
+		return nil, errors.ErrValidationFailed("query", "query vector is required for search")
 	}
 
 	// 添加过滤条件

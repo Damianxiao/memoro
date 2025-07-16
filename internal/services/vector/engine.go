@@ -153,8 +153,17 @@ func (se *SearchEngine) Search(ctx context.Context, options *SearchOptions) (*Se
 	// 2. 生成查询向量
 	queryVector, err := se.generateQueryVector(ctx, processedQuery, options)
 	if err != nil {
+		se.logger.Error("Failed to generate query vector", logger.Fields{
+			"error": err.Error(),
+			"query": processedQuery,
+		})
 		return nil, err
 	}
+	
+	se.logger.Debug("Query vector generated", logger.Fields{
+		"vector_length": len(queryVector),
+		"query": processedQuery,
+	})
 
 	// 3. 构建过滤条件
 	filter := se.buildFilter(options)

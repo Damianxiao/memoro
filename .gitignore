@@ -87,3 +87,5 @@ CLAUDE.md
 rules/
 LangBot/
 memoro
+WeChatPad-Docker/mysql
+WeChatPad-Docker/redis

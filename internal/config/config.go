@@ -357,6 +357,29 @@ func processEnvironmentOverrides(config *Config) error {
 	return nil
 }
 
+// InitializeForTest 为测试初始化配置
+func InitializeForTest(cfg *Config) error {
+	if cfg == nil {
+		return errors.ErrConfigMissing("config")
+	}
+	
+	// 初始化logger
+	if configLogger == nil {
+		configLogger = logger.NewLogger("config")
+	}
+	
+	// 设置全局配置
+	globalConfig = cfg
+	
+	configLogger.Info("Configuration initialized for test", logger.Fields{
+		"llm_provider": cfg.LLM.Provider,
+		"database_type": cfg.Database.Type,
+		"vector_db_type": cfg.VectorDB.Type,
+	})
+	
+	return nil
+}
+
 // Get 获取全局配置
 func Get() *Config {
 	if globalConfig == nil {

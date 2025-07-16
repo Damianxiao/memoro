@@ -71,7 +71,7 @@ services:
 
   # Chroma 向量数据库 (为Memoro应用准备)
   chroma:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.4.24
     container_name: memoro_chroma
     restart: always
     ports:

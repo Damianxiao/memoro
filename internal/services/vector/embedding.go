@@ -303,7 +303,7 @@ func (es *EmbeddingService) callEmbeddingAPI(ctx context.Context, text string) (
 
 	// 构建embedding请求
 	requestBody := map[string]interface{}{
-		"model": es.config.Model,
+		"model": "text-embedding-ada-002", // 使用固定的embedding模型
 		"input": text,
 	}
 
