@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"memoro/internal/config"
 	"memoro/internal/models"
 	"memoro/internal/services/content"
+	"memoro/internal/wechat"
 )
 
 func main() {
@@ -53,9 +55,9 @@ func main() {
 				MaxTagLength: 50,
 			},
 			SummaryLevels: config.SummaryLevelsConfig{
-				OneLineMaxLength:    200,
-				ParagraphMaxLength:  1000,
-				DetailedMaxLength:   5000,
+				OneLineMaxLength:   200,
+				ParagraphMaxLength: 1000,
+				DetailedMaxLength:  5000,
 			},
 		},
 	}
@@ -73,7 +75,42 @@ func main() {
 	}
 	defer processor.Close()
 
-	// 3. 演示完整的内容处理流程
+	// 3. 初始化微信登录状态监控
+	fmt.Println("📱 初始化微信登录状态监控...")
+	wechatClient := wechat.NewClient()
+	statusChecker := wechat.NewStatusChecker(wechatClient)
+	
+	// 检查初始登录状态
+	isLoggedIn, err := statusChecker.CheckCurrentStatus()
+	if err != nil {
+		fmt.Printf("⚠️  微信状态检查失败: %v\n", err)
+	} else if !isLoggedIn {
+		fmt.Println("🔄 微信未登录，正在触发登录...")
+		if err := statusChecker.TriggerLogin(); err != nil {
+			fmt.Printf("❌ 微信登录失败: %v\n", err)
+		}
+	} else {
+		fmt.Println("✅ 微信已登录")
+	}
+
+	// 启动状态监控
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		statusChecker.StartMonitoring(func(status bool) {
+			if status {
+				fmt.Println("✅ 微信登录状态恢复")
+			} else {
+				fmt.Println("⚠️  微信登录状态失效，正在重新登录...")
+				if err := statusChecker.TriggerLogin(); err != nil {
+					fmt.Printf("❌ 自动重新登录失败: %v\n", err)
+				}
+			}
+		})
+	}()
+
+	// 4. 演示完整的内容处理流程
 	fmt.Println("\n🎯 演示内容处理流程")
 	fmt.Println("-------------------")
 
@@ -97,7 +134,7 @@ func main() {
 			EnableClassification:  true,
 			EnableImportanceScore: true,
 			EnableVectorization:   true,
-			MaxTags:              10,
+			MaxTags:               10,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -128,8 +165,8 @@ func main() {
 	fmt.Printf("⭐ 重要性评分: %.2f\n", result.ImportanceScore)
 
 	if result.VectorResult != nil {
-		fmt.Printf("🔍 向量化: %s (维度: %d)\n", 
-			getBoolStr(result.VectorResult.Indexed), 
+		fmt.Printf("🔍 向量化: %s (维度: %d)\n",
+			getBoolStr(result.VectorResult.Indexed),
 			result.VectorResult.VectorDimension)
 	}
 

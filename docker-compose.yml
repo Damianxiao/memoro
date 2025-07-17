@@ -17,11 +17,11 @@ services:
       - ADMIN_KEY=12345
       - HOST=0.0.0.0
       - PORT=1239
-      - REDIS_HOST=redis
+      - REDIS_HOST=wechatpadpro_redis
       - REDIS_PORT=6379
       - REDIS_DB=1
       - REDIS_PASS=123456
-      - MYSQL_CONNECT_STR=wechatpadpro:123456@tcp(mysql:3306)/wechatpadpro?charset=utf8mb4&parseTime=true&loc=Local
+      - MYSQL_CONNECT_STR=wechatpadpro:123456@tcp(wechatpadpro_mysql:3306)/wechatpadpro?charset=utf8mb4&parseTime=true&loc=Local
       - HTTP_PROXY=
       - HTTPS_PROXY=
     depends_on:
@@ -35,7 +35,7 @@ services:
   # Redis 缓存服务
   redis:
     image: registry.cn-hangzhou.aliyuncs.com/wechatpad/wechatpadpro-redis:v0.1
-    container_name: memoro_redis
+    container_name: wechatpadpro_redis
     restart: always
     command: redis-server --requirepass 123456
     volumes:
@@ -51,7 +51,7 @@ services:
   # MySQL 数据库服务
   mysql:
     image: registry.cn-hangzhou.aliyuncs.com/wechatpad/wechatpadpro-mysql:v0.11
-    container_name: memoro_mysql
+    container_name: wechatpadpro_mysql
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=123456
