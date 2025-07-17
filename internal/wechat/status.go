@@ -24,9 +24,8 @@ func NewStatusChecker(client *Client) *StatusChecker {
 
 // CheckCurrentStatus 检查当前登录状态
 func (s *StatusChecker) CheckCurrentStatus() (bool, error) {
-	// 尝试调用一个需要登录的API来检查状态
-	// 这里使用获取用户信息的API作为状态检查
-	url := s.client.baseURL + "/user/GetUserInfo"
+	// 尝试调用GetLoginStatus API来检查状态
+	url := s.client.baseURL + "/login/GetLoginStatus"
 	
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -53,9 +52,18 @@ func (s *StatusChecker) CheckCurrentStatus() (bool, error) {
 		return false, fmt.Errorf("解析响应失败: %v", err)
 	}
 
-	// 检查响应码来判断是否已登录
-	if code, ok := result["Code"].(float64); ok && code == 200 {
-		return true, nil
+	// WeChatPadPro API 返回格式：
+	// {"Code": 200, "Data": {...}, "Text": "success"} - 已登录
+	// {"Code": -2, "Data": null, "Text": "该链接不存在！"} - 未认证/未登录
+	// {"Code": 其他, "Data": null, "Text": "error message"} - 其他错误
+	
+	if code, ok := result["Code"].(float64); ok {
+		if code == 200 {
+			// 进一步检查Data字段是否包含有效的登录信息
+			if data, ok := result["Data"]; ok && data != nil {
+				return true, nil
+			}
+		}
 	}
 
 	return false, nil
